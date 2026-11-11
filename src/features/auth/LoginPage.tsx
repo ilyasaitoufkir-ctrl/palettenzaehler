@@ -68,7 +68,7 @@ export function LoginPage() {
       style={{ paddingLeft: 'max(20px, env(safe-area-inset-left, 0px))', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))' }}
     >
       <div className="mb-8">
-        <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-accent text-accent-ink">
+        <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-brand text-accent-ink">
           <Boxes className="size-7" />
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Palettenzähler</h1>
@@ -125,6 +125,17 @@ export function LoginPage() {
 
 export function GesperrtPage() {
   const { repo, auth } = useApp()
+  if (repo.art === 'artifact') {
+    return (
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-5">
+        <h1 className="text-2xl font-bold">Kein Zugriff auf die Inventurdaten</h1>
+        <p className="text-ink-2">
+          Der Palettenzähler speichert die Inventur gemeinsam für alle, mit denen die Seite geteilt ist. Dafür musst du in Claude angemeldet sein und die
+          Seite muss mit dir geteilt sein. Öffne den Link bitte in Claude und frag sonst die Person, die ihn dir geschickt hat.
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-5">
       <h1 className="text-2xl font-bold">Konto noch nicht freigeschaltet</h1>

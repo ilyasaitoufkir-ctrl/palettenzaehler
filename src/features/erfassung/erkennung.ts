@@ -114,3 +114,66 @@ export const demoRecognizer: RecognizePallet = async (bilder, artikel) => {
   }
   return { ki, ...barcode, demo: true }
 }
+
+interface SampleFn {
+  (input: string, opts?: { images?: Blob[]; modelTier?: 'quick' | 'default' | 'complex'; cache?: boolean; signal?: AbortSignal }): Promise<{ text: string }>
+  limits(): Promise<{ images?: { maxCount: number; maxInputBytes: number } }>
+}
+
+/**
+ * Echte Erkennung auf der veröffentlichten Claude Seite: Claude wertet die Fotos direkt aus,
+ * ohne eigenen API Schlüssel. Antwort wird genauso streng geprüft wie auf dem Server.
+ */
+export function createArtifactRecognizer(): RecognizePallet {
+  let sampleP: Promise<SampleFn | null> | null = null
+  const holen = () =>
+    (sampleP ??= (async () => {
+      const c = (globalThis as unknown as { claude?: { use(n: string): Promise<unknown> } }).claude
+      if (!c) return null
+      try {
+        return ((await c.use('sample')) as SampleFn) ?? null
+      } catch {
+        return null
+      }
+    })())
+
+  return async (bilder, artikel) => {
+    if (!navigator.onLine) throw new ErkennungsFehler('Keine Verbindung. Die Analyse startet automatisch, sobald du wieder online bist.')
+    const sample = await holen()
+    if (!sample) throw new ErkennungsFehler('Die KI ist in dieser Ansicht nicht verfügbar. Bitte die Seite in Claude öffnen oder manuell erfassen.', false)
+
+    const { SYSTEM_PROMPT, nutzerText, kiAntwortValidieren } = await import('../../../api/_lib/analyse')
+    const stamm = artikel.map((a) => ({
+      nr: a.artikelnummer,
+      bez: a.bezeichnung.slice(0, 160),
+      gebinde: [a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ').slice(0, 80),
+      stueckProLage: a.stueckProLage,
+    }))
+    const nummern = stamm.map((a) => a.nr)
+    const [barcode] = await Promise.all([barcodeTeil(bilder, artikel)])
+    const prompt = `${SYSTEM_PROMPT}\n\n${nutzerText(stamm)}`
+
+    const aufruf = async (text: string) => {
+      try {
+        return (await sample(text, { images: bilder.slice(0, 3), modelTier: 'default', cache: false })).text
+      } catch (e) {
+        const code = (e as { code?: string }).code
+        if (code === 'not_granted') throw new ErkennungsFehler('Du hast der Seite die KI Nutzung nicht erlaubt. Über das Menü der Seite unter Berechtigungen änderbar.', false)
+        if (code === 'images_unavailable' || code === 'image_rejected') throw new ErkennungsFehler('Die Fotos konnten nicht an die KI übergeben werden. Bitte erneut fotografieren.', false)
+        if (code === 'rate_limited') throw new ErkennungsFehler('Zu viele Anfragen in kurzer Zeit. Bitte kurz warten und erneut versuchen.')
+        throw new ErkennungsFehler('Die KI hat nicht geantwortet. Bitte erneut versuchen oder manuell erfassen.')
+      }
+    }
+
+    let antwort = await aufruf(prompt)
+    let v = kiAntwortValidieren(antwort, nummern)
+    if (!v.ok) {
+      antwort = await aufruf(
+        `${prompt}\n\nDeine vorherige Antwort war ungültig (${v.fehler}). Antworte jetzt ausschließlich mit einem gültigen JSON Objekt nach dem Schema, ohne weiteren Text.`,
+      )
+      v = kiAntwortValidieren(antwort, nummern)
+    }
+    if (!v.ok) throw new ErkennungsFehler('Die KI hat keine verwertbare Antwort geliefert. Bitte erneut versuchen oder manuell erfassen.')
+    return { ki: v.ergebnis, ...barcode, demo: false }
+  }
+}

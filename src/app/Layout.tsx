@@ -40,7 +40,7 @@ export function Layout() {
           </div>
         )}
         <div className="flex items-center gap-2 px-4 py-2.5">
-          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-ink">
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-accent-ink">
             <Boxes className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -55,7 +55,7 @@ export function Layout() {
           <button className="btn btn-ghost btn-icon" onClick={weiter} aria-label={`Darstellung: ${thema === 'system' ? 'System' : thema === 'dark' ? 'Dunkel' : 'Hell'}`}>
             <ThemaIcon className="size-5" />
           </button>
-          <button
+          {repo.art !== 'artifact' && <button
             className="btn btn-ghost btn-icon -mr-2"
             onClick={async () => {
               await repo.logout()
@@ -65,7 +65,7 @@ export function Layout() {
             title={nutzer?.email}
           >
             <LogOut className="size-5" />
-          </button>
+          </button>}
         </div>
       </header>
 
@@ -100,7 +100,7 @@ export function Layout() {
               {({ isActive }) =>
                 n.haupt ? (
                   <>
-                    <span className="-mt-6 grid size-[60px] place-items-center rounded-full bg-accent text-accent-ink shadow-lg ring-4 ring-bg">
+                    <span className="-mt-6 grid size-[60px] place-items-center rounded-full bg-brand text-accent-ink shadow-lg ring-4 ring-bg">
                       <n.icon className="size-7" />
                     </span>
                     <span className={isActive ? 'text-accent' : 'text-ink-2'}>{n.label}</span>

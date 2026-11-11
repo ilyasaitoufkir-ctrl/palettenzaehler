@@ -100,3 +100,7 @@ npm run check         # alles zusammen inkl. Bundle Prüfung
 - Bilderkennung zählt nur Sichtbares. Verdeckte Gebinde im Palettenkern kann keine Kamera sehen, daher bestätigt immer ein Mensch.
 - Barcode Erkennung nutzt die BarcodeDetector API des Browsers (z. B. Chrome auf Android). Safari auf dem iPhone unterstützt sie derzeit nicht, dann wird der Schritt übersprungen.
 - Kein Import des Sollbestands aus dem ERP: Sollwerte kommen aus dem Artikelstamm (Feld oder CSV Import).
+
+## Betrieb als Claude Seite (ohne eigene Schlüssel)
+
+`VITE_PLATTFORM=artifact VITE_ROUTER=memory npx vite build --base ./ --outDir dist-artifact` erzeugt eine Variante, die als veröffentlichte Claude Seite läuft: Daten liegen in der gemeinsamen Datenbank der Seite, angemeldet wird über das Claude Konto, die Bilderkennung macht Claude direkt (gleicher Prompt und gleiche strenge Prüfung wie `/api/analyze`). Zugriff haben alle, mit denen die Seite geteilt ist.

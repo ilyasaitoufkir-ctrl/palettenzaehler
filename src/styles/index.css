@@ -3,51 +3,54 @@
 
 /*
   Designsystem Palettenzähler
-  Ruhiges Salbei/Fichte Grün auf kühlem Grau, Pastell für Zustände.
+  Weiß mit kräftigem Orange als Markenfarbe, warme Neutraltöne, Pastell für Zustände.
+  brand: Flächen (Knöpfe, Logo), accent: orange Text mit ausreichendem Kontrast.
   Alle Farben laufen über Tokens, Hell und Dunkel teilen dieselben Namen.
 */
 :root {
-  --c-bg: #f4f6f6;
+  --c-bg: #faf8f6;
   --c-surface: #ffffff;
-  --c-surface-2: #eef2f1;
-  --c-line: #dde4e2;
-  --c-ink: #14211f;
-  --c-ink-2: #4c5c59;
-  --c-ink-3: #7b8a87;
-  --c-accent: #2e6a60;
+  --c-surface-2: #f8f5f2;
+  --c-line: #ece4dc;
+  --c-ink: #1f1a16;
+  --c-ink-2: #5c534b;
+  --c-ink-3: #8c8178;
+  --c-accent: #b95300;
+  --c-brand: #ef7d00;
   --c-accent-ink: #ffffff;
-  --c-accent-soft: #dceee9;
-  --c-ok: #2f7d4f;
-  --c-ok-soft: #e1f2e6;
-  --c-warn: #855700;
-  --c-warn-soft: #fbefcc;
-  --c-bad: #a3332b;
-  --c-bad-soft: #f9e0dc;
-  --c-info: #2d5d8a;
-  --c-info-soft: #e2ecf7;
-  --c-shadow: 20 33 31;
+  --c-accent-soft: #fff0e0;
+  --c-ok: #2c7a4b;
+  --c-ok-soft: #e3f3e8;
+  --c-warn: #8a5300;
+  --c-warn-soft: #fdf0d2;
+  --c-bad: #b3261e;
+  --c-bad-soft: #fbe3e0;
+  --c-info: #2f5f8f;
+  --c-info-soft: #e5eef8;
+  --c-shadow: 60 35 10;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --c-bg: #0f1514;
-    --c-surface: #161e1d;
-    --c-surface-2: #1d2726;
-    --c-line: #2a3634;
-    --c-ink: #e8efed;
-    --c-ink-2: #a9b8b5;
-    --c-ink-3: #778985;
-    --c-accent: #7cc2b4;
-    --c-accent-ink: #0c1a17;
-    --c-accent-soft: #1d3833;
-    --c-ok: #7fd19c;
+    --c-bg: #141110;
+    --c-surface: #1c1815;
+    --c-surface-2: #25201c;
+    --c-line: #362e28;
+    --c-ink: #f6f0ea;
+    --c-ink-2: #c6b9ae;
+    --c-ink-3: #8f8378;
+    --c-accent: #ffa24f;
+    --c-brand: #f48600;
+    --c-accent-ink: #1f1206;
+    --c-accent-soft: #3b2510;
+    --c-ok: #84d3a0;
     --c-ok-soft: #173325;
-    --c-warn: #f1c768;
-    --c-warn-soft: #3a2e12;
-    --c-bad: #f2968c;
-    --c-bad-soft: #3d1f1c;
-    --c-info: #8fbbe6;
+    --c-warn: #f2c46a;
+    --c-warn-soft: #3a2d12;
+    --c-bad: #f3958b;
+    --c-bad-soft: #401e1b;
+    --c-info: #93bde8;
     --c-info-soft: #1b2b3c;
     --c-shadow: 0 0 0;
     color-scheme: dark;
@@ -55,23 +58,24 @@
 }
 
 :root[data-theme='dark'] {
-  --c-bg: #0f1514;
-  --c-surface: #161e1d;
-  --c-surface-2: #1d2726;
-  --c-line: #2a3634;
-  --c-ink: #e8efed;
-  --c-ink-2: #a9b8b5;
-  --c-ink-3: #778985;
-  --c-accent: #7cc2b4;
-  --c-accent-ink: #0c1a17;
-  --c-accent-soft: #1d3833;
-  --c-ok: #7fd19c;
+  --c-bg: #141110;
+  --c-surface: #1c1815;
+  --c-surface-2: #25201c;
+  --c-line: #362e28;
+  --c-ink: #f6f0ea;
+  --c-ink-2: #c6b9ae;
+  --c-ink-3: #8f8378;
+  --c-accent: #ffa24f;
+  --c-brand: #f48600;
+  --c-accent-ink: #1f1206;
+  --c-accent-soft: #3b2510;
+  --c-ok: #84d3a0;
   --c-ok-soft: #173325;
-  --c-warn: #f1c768;
-  --c-warn-soft: #3a2e12;
-  --c-bad: #f2968c;
-  --c-bad-soft: #3d1f1c;
-  --c-info: #8fbbe6;
+  --c-warn: #f2c46a;
+  --c-warn-soft: #3a2d12;
+  --c-bad: #f3958b;
+  --c-bad-soft: #401e1b;
+  --c-info: #93bde8;
   --c-info-soft: #1b2b3c;
   --c-shadow: 0 0 0;
   color-scheme: dark;
@@ -88,6 +92,7 @@
   --color-ink-3: var(--c-ink-3);
   --color-accent: var(--c-accent);
   --color-accent-ink: var(--c-accent-ink);
+  --color-brand: var(--c-brand);
   --color-accent-soft: var(--c-accent-soft);
   --color-ok: var(--c-ok);
   --color-ok-soft: var(--c-ok-soft);
@@ -170,7 +175,7 @@ h3 {
     outline-offset: 2px;
   }
   .btn-primary {
-    background: var(--c-accent);
+    background: var(--c-brand);
     color: var(--c-accent-ink);
   }
   .btn-secondary {

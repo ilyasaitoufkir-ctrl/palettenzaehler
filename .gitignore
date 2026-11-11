@@ -9,3 +9,4 @@ dist
 coverage
 service-account*.json
 dist-demo
+dist-artifact

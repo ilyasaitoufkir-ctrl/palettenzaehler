@@ -176,6 +176,7 @@ export function createDemoRepo(): DataRepo {
   const email = () => demoNutzer() ?? 'demo@beispiel.de'
   return {
     demo: true,
+    art: 'demo',
 
     onAuth(cb) {
       const melden = () => {

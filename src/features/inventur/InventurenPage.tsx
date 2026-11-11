@@ -66,7 +66,7 @@ export function InventurenPage() {
             return (
               <li key={i.id} className={`card overflow-hidden ${istAktiv ? 'border-accent' : ''}`}>
                 <button className="flex w-full items-center gap-3 px-4 py-4 text-left" onClick={() => aktiveInventurWaehlen(i.id)} aria-pressed={istAktiv}>
-                  <div className={`grid size-10 shrink-0 place-items-center rounded-full ${istAktiv ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-ink-3'}`}>
+                  <div className={`grid size-10 shrink-0 place-items-center rounded-full ${istAktiv ? 'bg-brand text-accent-ink' : 'bg-surface-2 text-ink-3'}`}>
                     {istAktiv ? <Check className="size-5" /> : <Boxes className="size-5" />}
                   </div>
                   <div className="min-w-0 flex-1">

@@ -14,6 +14,8 @@ export type Abmelden = () => void
  */
 export interface DataRepo {
   readonly demo: boolean
+  /** firebase: eigene Web App, demo: lokal im Browser, artifact: als Claude Seite veröffentlicht */
+  readonly art: 'firebase' | 'demo' | 'artifact'
 
   onAuth(cb: (z: AuthZustand) => void): Abmelden
   login(email: string, passwort: string): Promise<void>

@@ -61,9 +61,22 @@ export function ListePage() {
     )
   }
 
-  const ausgeben = (name: string, text: string) => {
-    // in eingebetteten Vorschauen sind Downloads gesperrt, dort Text zum Kopieren zeigen
-    if (EINGEBETTET) return setCsvVorschau({ name, text })
+  const ausgeben = async (name: string, text: string) => {
+    if (EINGEBETTET) {
+      // auf der Claude Seite über die Download Freigabe speichern, sonst Text zum Kopieren zeigen
+      const c = (globalThis as unknown as { claude?: { use(n: string): Promise<unknown> } }).claude
+      const dl = c ? ((await c.use('downloads').catch(() => null)) as { save(r: { filename: string; data: Blob }): Promise<unknown> } | null) : null
+      if (dl) {
+        try {
+          await dl.save({ filename: name, data: new Blob([text], { type: 'text/csv;charset=utf-8' }) })
+          toast('CSV gespeichert')
+          return
+        } catch (e) {
+          if ((e as { code?: string }).code === 'declined') return
+        }
+      }
+      return setCsvVorschau({ name, text })
+    }
     dateiHerunterladen(name, text)
     toast('CSV exportiert')
   }

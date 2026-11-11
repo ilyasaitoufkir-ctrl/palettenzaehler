@@ -11,6 +11,9 @@ export const firebaseConfig = {
 
 const firebaseVollstaendig = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId)
 
+/** artifact: Betrieb als veröffentlichte Claude Seite (Datenbank und KI über die Seite, keine eigenen Schlüssel) */
+export const PLATTFORM: 'web' | 'artifact' = env.VITE_PLATTFORM === 'artifact' ? 'artifact' : 'web'
+
 /**
  * Demo Modus: läuft ohne Firebase und ohne KI Schlüssel.
  * Aktiv, wenn keine Firebase Konfiguration vorhanden ist oder VITE_DEMO_MODE=true gesetzt ist.

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ladeRepo, type AuthZustand, type DataRepo } from '../lib/data'
 import type { Artikel, Inventur, Nutzer, Position } from '../types'
-import { createApiRecognizer, demoRecognizer, type RecognizePallet } from '../features/erfassung/erkennung'
+import { createApiRecognizer, createArtifactRecognizer, demoRecognizer, type RecognizePallet } from '../features/erfassung/erkennung'
 import { onQueue, queueAlle, queueAufraeumen, type QueueEintrag } from '../features/offline/queue'
 import { warteschlangeAbarbeiten } from '../features/offline/verarbeitung'
 
@@ -141,7 +141,10 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
     }
   }, [])
 
-  const erkennen = useMemo<RecognizePallet>(() => (repo.demo ? demoRecognizer : createApiRecognizer(repo)), [repo])
+  const erkennen = useMemo<RecognizePallet>(
+    () => (repo.art === 'artifact' ? createArtifactRecognizer() : repo.demo ? demoRecognizer : createApiRecognizer(repo)),
+    [repo],
+  )
 
   // Warteschlange beobachten
   useEffect(() => {

@@ -110,6 +110,7 @@ export function createFirebaseRepo(): DataRepo {
 
   return {
     demo: false,
+    art: 'firebase',
 
     onAuth(cb) {
       cb({ status: 'laden' })
