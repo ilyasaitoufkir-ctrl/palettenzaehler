@@ -115,7 +115,6 @@ export async function createArtifactRepo(): Promise<DataRepo> {
   const pfadPositionen = (inv: string) => `inventuren/${inv}/positionen`
 
   return {
-    demo: false,
     art: 'artifact',
 
     onAuth(cb) {

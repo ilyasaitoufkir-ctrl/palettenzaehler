@@ -179,7 +179,12 @@ const SPALTEN_ALIAS: Record<string, keyof ArtikelImportErgebnis['artikel'][numbe
 const normSpalte = (s: string) => s.toLowerCase().replace(/[\s_.]/g, '')
 
 export function artikelAusCsv(text: string): ArtikelImportErgebnis {
-  const zeilen = parseCsv(text)
+  return artikelAusZeilen(parseCsv(text))
+}
+
+/** Artikel aus Tabellenzeilen (CSV oder Excel), erste Zeile sind die Spaltennamen */
+export function artikelAusZeilen(roh: string[][]): ArtikelImportErgebnis {
+  const zeilen = roh.filter((z) => z.some((f) => String(f ?? '').trim() !== ''))
   const fehler: string[] = []
   if (zeilen.length < 2) return { artikel: [], fehler: ['Die Datei enthält keine Datenzeilen.'] }
   const kopf = zeilen[0].map((k) => SPALTEN_ALIAS[normSpalte(k)])

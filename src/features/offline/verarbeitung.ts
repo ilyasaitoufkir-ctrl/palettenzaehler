@@ -39,7 +39,7 @@ async function fotosNachreichen(repo: DataRepo, e: QueueEintrag): Promise<void> 
   if (inArbeit.has('upload:' + e.id)) return
   inArbeit.add('upload:' + e.id)
   try {
-    if (!istOnline() && !repo.demo) return
+    if (!istOnline() && repo.art !== 'lokal') return
     const urls = e.bilder.length ? await repo.fotosHochladen(e.inventurId, e.id, e.bilder) : []
     await repo.positionAktualisieren(e.inventurId, e.id, { fotoUrls: urls })
     // Bilder nach erfolgreichem Upload aus dem Gerätespeicher entfernen

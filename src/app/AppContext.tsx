@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { KI_ECHT } from '../lib/config'
 import { ladeRepo, type AuthZustand, type DataRepo } from '../lib/data'
 import type { Artikel, Inventur, Nutzer, Position } from '../types'
-import { createApiRecognizer, createArtifactRecognizer, demoRecognizer, type RecognizePallet } from '../features/erfassung/erkennung'
+import { createApiRecognizer, createArtifactRecognizer, type RecognizePallet } from '../features/erfassung/erkennung'
 import { onQueue, queueAlle, queueAufraeumen, type QueueEintrag } from '../features/offline/queue'
 import { warteschlangeAbarbeiten } from '../features/offline/verarbeitung'
 
@@ -143,7 +142,7 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
   }, [])
 
   const erkennen = useMemo<RecognizePallet>(
-    () => (repo.art === 'artifact' ? createArtifactRecognizer() : repo.demo && !KI_ECHT ? demoRecognizer : createApiRecognizer(repo)),
+    () => (repo.art === 'artifact' ? createArtifactRecognizer() : createApiRecognizer(repo)),
     [repo],
   )
 

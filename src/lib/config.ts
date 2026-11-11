@@ -15,13 +15,7 @@ const firebaseVollstaendig = Boolean(firebaseConfig.apiKey && firebaseConfig.pro
 export const PLATTFORM: 'web' | 'artifact' = env.VITE_PLATTFORM === 'artifact' ? 'artifact' : 'web'
 
 /**
- * Demo Modus: läuft ohne Firebase und ohne KI Schlüssel.
- * Aktiv, wenn keine Firebase Konfiguration vorhanden ist oder VITE_DEMO_MODE=true gesetzt ist.
+ * Ohne Firebase Konfiguration laufen die Daten lokal auf dem Gerät.
+ * Die Bilderkennung läuft immer echt über /api/analyze bzw. auf der Claude Seite.
  */
-/**
- * Echte KI ohne Firebase: Daten bleiben lokal, die Bilderkennung läuft über /api/analyze,
- * geschützt durch den Zugangscode (APP_ZUGANGSCODE auf dem Server).
- */
-export const KI_ECHT = env.VITE_KI_ECHT === 'true'
-
-export const DEMO_MODUS = env.VITE_DEMO_MODE === 'true' || !firebaseVollstaendig
+export const LOKAL_MODUS = !firebaseVollstaendig

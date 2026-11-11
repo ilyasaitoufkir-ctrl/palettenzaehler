@@ -98,3 +98,16 @@ describe('Artikel CSV Import', () => {
     expect(r.fehler).toHaveLength(3)
   })
 })
+
+describe('Artikel aus Excel Zeilen', () => {
+  it('nutzt dieselbe Logik wie der CSV Import', async () => {
+    const { artikelAusZeilen } = await import('../src/lib/utils/csv')
+    const r = artikelAusZeilen([
+      ['Artikelnummer', 'Bezeichnung', 'Stück pro Lage', 'Lagen pro Palette', 'Sollbestand'],
+      ['10025', 'Zitronenaroma', '12', '2', '96'],
+      ['', '', '', '', ''],
+    ])
+    expect(r.fehler).toEqual([])
+    expect(r.artikel[0]).toMatchObject({ artikelnummer: '10025', stueckProLage: 12, lagenProPalette: 2, sollbestand: 96 })
+  })
+})

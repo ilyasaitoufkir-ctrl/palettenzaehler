@@ -15,5 +15,7 @@ export function heuteIso(): string {
 }
 
 export function dateinameSicher(s: string): string {
-  return s.normalize('NFKD').replace(/[^\w-]+/g, '_').replace(/_+/g, '_').slice(0, 60) || 'inventur'
+  return s
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss')
+    .normalize('NFKD').replace(/[^\w-]+/g, '_').replace(/_+/g, '_').slice(0, 60) || 'inventur'
 }

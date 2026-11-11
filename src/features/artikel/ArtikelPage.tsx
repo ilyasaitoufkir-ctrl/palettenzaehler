@@ -3,7 +3,8 @@ import { ImagePlus, Package, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Bestaetigen, Leer, Seitenkopf, Sheet, Spinner } from '../../components/ui'
 import type { Artikel, ArtikelEingabe } from '../../types'
-import { artikelAusCsv } from '../../lib/utils/csv'
+import { artikelAusCsv, artikelAusZeilen } from '../../lib/utils/csv'
+import { dateiAusgeben } from '../../lib/utils/download'
 import { bildOptimieren } from '../../lib/utils/bild'
 
 const GEBINDE = ['Kanister', 'Karton', 'Fass', 'IBC', 'Eimer', 'Sack', 'Sonstiges']
@@ -117,8 +118,10 @@ export function ArtikelPage() {
     if (!datei) return
     setLaeuft(true)
     try {
-      const text = await datei.text()
-      const { artikel: neu, fehler } = artikelAusCsv(text)
+      const istExcel = /\.xlsx$/i.test(datei.name) || datei.type.includes('spreadsheetml')
+      const { artikel: neu, fehler } = istExcel
+        ? artikelAusZeilen(await (await import('../export/excel')).excelZeilen(datei))
+        : artikelAusCsv(await datei.text())
       const ergebnis = neu.length ? await repo.artikelImportieren(neu, artikel) : { neu: 0, aktualisiert: 0 }
       setImportInfo({ ...ergebnis, fehler })
     } catch {
@@ -149,17 +152,26 @@ export function ArtikelPage() {
         </label>
         <button className="btn btn-secondary" onClick={() => csvRef.current?.click()} disabled={laeuft}>
           {laeuft ? <Spinner /> : <Upload className="size-5" />}
-          <span className="hidden sm:inline">CSV Import</span>
-          <span className="sm:hidden">CSV</span>
+          Import
         </button>
-        <input ref={csvRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => csvImport(e.target.files?.[0])} />
+        <input ref={csvRef} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={(e) => csvImport(e.target.files?.[0])} />
       </div>
+
+      <button
+        className="mb-4 text-sm font-semibold text-accent"
+        onClick={async () => {
+          const { artikelVorlage } = await import('../export/excel')
+          await dateiAusgeben('Artikel_Vorlage.xlsx', await artikelVorlage())
+        }}
+      >
+        Excel Vorlage für den Import herunterladen
+      </button>
 
       {artikel.length === 0 ? (
         <Leer
           icon={<Package className="size-7" />}
           titel="Noch keine Artikel"
-          text="Lege Artikel an oder importiere eine CSV mit den Spalten Artikelnummer; Bezeichnung; Gebindeart; Gebindegroesse; StueckProLage; LagenProPalette; Barcode; Sollbestand."
+          text="Lege Artikel einzeln an oder importiere eine Excel oder CSV Datei. Am einfachsten mit der Vorlage oben."
           aktion={
             <button className="btn btn-primary" onClick={() => oeffnen(null)}>
               Artikel anlegen
@@ -272,7 +284,7 @@ export function ArtikelPage() {
                 <button type="button" className="btn btn-secondary flex-1" onClick={() => fotoRef.current?.click()} disabled={laeuft}>
                   {laeuft ? <Spinner /> : <ImagePlus className="size-5" />} {form.foto ? 'Foto ersetzen' : 'Foto hinzufügen'}
                 </button>
-                <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => fotoGewaehlt(e.target.files?.[0])} />
+                <input ref={fotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => fotoGewaehlt(e.target.files?.[0])} />
               </div>
             </div>
             <div className="mt-1 grid grid-cols-[auto_1fr] gap-3">
@@ -310,7 +322,7 @@ export function ArtikelPage() {
         }}
       />
 
-      <Sheet offen={!!importInfo} onClose={() => setImportInfo(null)} titel="CSV Import">
+      <Sheet offen={!!importInfo} onClose={() => setImportInfo(null)} titel="Import">
         {importInfo && (
           <div className="flex flex-col gap-3">
             <p>

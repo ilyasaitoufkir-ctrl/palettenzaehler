@@ -1,16 +1,16 @@
 import type { Artikel, Inventur, Position } from '../../types'
 import { bildOptimieren, blobZuDataUrl } from '../utils/bild'
 import { neueId } from '../utils/id'
-import { KI_ECHT } from '../config'
 import type { AuthZustand, DataRepo } from './repo'
 
 /**
- * Demo Datenhaltung: alles bleibt im localStorage dieses Browsers.
- * Mehrere Tabs sehen Änderungen sofort (storage Ereignis), damit sich die Echtzeit Synchronisierung vorführen lässt.
+ * Lokale Datenhaltung ohne Firebase: Inventuren, Artikel und Positionen bleiben im Speicher dieses Geräts.
+ * Mehrere Tabs sehen Änderungen sofort (storage Ereignis).
+ * Anmeldung mit Name und Zugangscode, der Code schützt die KI Analyse auf dem Server.
  */
 
-const KEY = 'pz-demo-v1'
-const AUTH_KEY = 'pz-demo-auth'
+const KEY = 'pz-lokal-v1'
+const AUTH_KEY = 'pz-lokal-nutzer'
 const CODE_KEY = 'pz-zugangscode'
 let codeOhneSpeicher: string | null = null
 
@@ -20,96 +20,7 @@ interface Store {
   positionen: Record<string, Position[]>
 }
 
-const TAG = 24 * 60 * 60 * 1000
-
-function seed(): Store {
-  // echte KI: ohne Beispieldaten starten
-  if (KI_ECHT) return { inventuren: [], artikel: [], positionen: {} }
-  const jetzt = Date.now()
-  const a = (
-    id: string,
-    nr: string,
-    bez: string,
-    art: string,
-    gr: string,
-    spl: number | null,
-    lpp: number | null,
-    soll: number | null,
-    barcode: string | null,
-  ): Artikel => ({
-    id,
-    artikelnummer: nr,
-    bezeichnung: bez,
-    gebindeart: art,
-    gebindegroesse: gr,
-    stueckProLage: spl,
-    lagenProPalette: lpp,
-    sollbestand: soll,
-    barcode,
-    referenzfotoUrl: null,
-    aktualisiertAm: jetzt,
-  })
-  const artikel = [
-    a('art-1', 'D-10005', 'Orangenöl kaltgepresst', 'Kanister', '5 l', 40, 3, 240, '4000000100051'),
-    a('art-2', 'D-10010', 'Vanillearoma natürlich', 'Kanister', '10 l', 20, 2, 120, '4000000100105'),
-    a('art-3', 'D-10025', 'Zitronenaroma natürlich', 'Kanister', '25 l', 12, 2, 96, '4000000100259'),
-    a('art-4', 'D-20200', 'Pfefferminzöl', 'Fass', '200 l', 4, 1, 12, null),
-    a('art-5', 'D-30001', 'Aromamischung Erdbeere', 'IBC', '1000 l', 1, 1, 3, null),
-    a('art-6', 'D-50012', 'Leerkanister 25 l', 'Karton', '10 Stück', 5, 4, 60, null),
-  ]
-  const inv: Inventur = {
-    id: 'inv-demo',
-    name: 'Beispielinventur Gebäude 5',
-    datum: new Date(jetzt).toISOString().slice(0, 10),
-    lagerort: 'Gebäude 5, Halle A',
-    status: 'aktiv',
-    erstelltVon: 'demo@beispiel.de',
-    erstelltAm: jetzt - TAG,
-  }
-  const p = (
-    id: string,
-    art: Artikel,
-    lagen: number,
-    spl: number,
-    fehlend: number,
-    platz: string,
-    konf: Position['konfidenz'],
-    vorMin: number,
-    hinweis: string,
-  ): Position => ({
-    id,
-    inventurId: inv.id,
-    artikelId: art.id,
-    artikelnummer: art.artikelnummer,
-    bezeichnung: art.bezeichnung,
-    gebindeart: `${art.gebindeart} ${art.gebindegroesse}`,
-    lagen,
-    stueckProLage: spl,
-    fehlend,
-    menge: lagen * spl - fehlend,
-    lagerplatz: platz,
-    konfidenz: konf,
-    quelle: konf === 'manuell' ? 'manuell' : 'ki',
-    kiGesamt: konf === 'manuell' ? null : lagen * spl - fehlend,
-    kiHinweise: hinweis,
-    etikettText: konf === 'manuell' ? null : art.artikelnummer,
-    fotoUrls: [],
-    erstelltVon: 'demo@beispiel.de',
-    erstelltVonUid: 'demo',
-    erstelltAm: jetzt - vorMin * 60_000,
-    geaendertAm: jetzt - vorMin * 60_000,
-    geaendertVon: 'demo@beispiel.de',
-  })
-  const positionen = [
-    p('pos-1', artikel[0], 3, 40, 0, 'A-01-1', 'hoch', 95, 'Beispielposition: volle Palette, alle Seiten sichtbar.'),
-    p('pos-2', artikel[0], 3, 40, 6, 'A-01-2', 'mittel', 80, 'Beispielposition: obere Lage angebrochen.'),
-    p('pos-3', artikel[1], 2, 20, 0, 'A-02-1', 'hoch', 64, 'Beispielposition: Etikett gut lesbar.'),
-    p('pos-4', artikel[2], 2, 12, 3, 'A-03-1', 'niedrig', 40, 'Beispielposition: Folie spiegelt, Kern nicht sichtbar. Bitte nachzählen.'),
-    p('pos-5', artikel[3], 1, 4, 0, 'B-01-1', 'manuell', 22, ''),
-    p('pos-6', artikel[4], 1, 1, 0, 'B-04-1', 'hoch', 10, 'Beispielposition: ein IBC erkannt.'),
-  ]
-  return { inventuren: [inv], artikel, positionen: { [inv.id]: positionen } }
-}
+const leer = (): Store => ({ inventuren: [], artikel: [], positionen: {} })
 
 function lesen(): Store {
   try {
@@ -118,9 +29,7 @@ function lesen(): Store {
   } catch {
     /* localStorage nicht verfügbar */
   }
-  const s = seed()
-  schreibenRoh(s)
-  return s
+  return leer()
 }
 
 let speicher: Store | null = null
@@ -130,7 +39,7 @@ function schreibenRoh(s: Store) {
   try {
     localStorage.setItem(KEY, JSON.stringify(s))
   } catch {
-    window.dispatchEvent(new CustomEvent('pz-fehler', { detail: 'Der Browserspeicher ist voll. Bitte einige Demo Positionen löschen.' }))
+    window.dispatchEvent(new CustomEvent('pz-fehler', { detail: 'Der Gerätespeicher der App ist voll. Bitte alte Inventuren exportieren und löschen.' }))
   }
 }
 
@@ -161,7 +70,7 @@ function abonnieren(fn: Hoerer) {
 
 const authHoerer = new Set<Hoerer>()
 let angemeldetOhneSpeicher: string | null = null
-function demoNutzer(): string | null {
+function lokalerNutzer(): string | null {
   try {
     return localStorage.getItem(AUTH_KEY) ?? angemeldetOhneSpeicher
   } catch {
@@ -171,22 +80,15 @@ function demoNutzer(): string | null {
 
 const verzoegert = <T,>(wert: T, ms = 120) => new Promise<T>((r) => setTimeout(() => r(wert), ms))
 
-export function demoZuruecksetzen() {
-  speicher = seed()
-  schreibenRoh(speicher)
-  hoerer.forEach((h) => h())
-}
-
-export function createDemoRepo(): DataRepo {
-  const email = () => demoNutzer() ?? 'demo@beispiel.de'
+export function createLokalRepo(): DataRepo {
+  const email = () => lokalerNutzer() ?? 'unbekannt'
   return {
-    demo: true,
-    art: 'demo',
+    art: 'lokal',
 
     onAuth(cb) {
       const melden = () => {
-        const e = demoNutzer()
-        const z: AuthZustand = e ? { status: 'angemeldet', nutzer: { uid: 'demo-' + e, email: e } } : { status: 'abgemeldet' }
+        const e = lokalerNutzer()
+        const z: AuthZustand = e ? { status: 'angemeldet', nutzer: { uid: 'lokal-' + e, email: e } } : { status: 'abgemeldet' }
         cb(z)
       }
       authHoerer.add(melden)
@@ -196,8 +98,8 @@ export function createDemoRepo(): DataRepo {
       }
     },
     async login(mail, passwort) {
-      if (!KI_ECHT && !mail.includes('@')) throw Object.assign(new Error('E-Mail ungültig'), { code: 'auth/invalid-email' })
-      if (!passwort) throw Object.assign(new Error('Passwort fehlt'), { code: 'auth/missing-password' })
+      if (!mail.trim()) throw Object.assign(new Error('Name fehlt'), { code: 'auth/missing-name' })
+      if (!passwort) throw Object.assign(new Error('Zugangscode fehlt'), { code: 'auth/missing-password' })
       await verzoegert(null, 300)
       codeOhneSpeicher = passwort
       try {
@@ -227,7 +129,7 @@ export function createDemoRepo(): DataRepo {
       await verzoegert(null, 300)
     },
     async idToken() {
-      // im Modus "echte KI ohne Firebase" dient der Zugangscode als Token
+      // der Zugangscode dient als Token für /api/analyze
       let code = codeOhneSpeicher
       try {
         code = localStorage.getItem(CODE_KEY) ?? code
@@ -314,7 +216,7 @@ export function createDemoRepo(): DataRepo {
           inventurId,
           fotoUrls: [],
           erstelltVon: email(),
-          erstelltVonUid: 'demo-' + email(),
+          erstelltVonUid: 'lokal-' + email(),
           erstelltAm: jetzt,
           geaendertAm: jetzt,
           geaendertVon: email(),
@@ -336,10 +238,10 @@ export function createDemoRepo(): DataRepo {
       })
     },
     async fotosHochladen(_inventurId, _positionId, bilder) {
-      // im Demo Modus nur kleine Vorschaubilder lokal ablegen
-      const urls: string[] = []
-      for (const b of bilder) urls.push(await blobZuDataUrl(await bildOptimieren(b, 360, 0.6)))
-      return urls
+      // Fotos als kleine Vorschaubilder lokal ablegen (für Liste und Excel Export)
+      // nur das erste Foto als Vorschau, damit der Gerätespeicher für viele Paletten reicht
+      if (!bilder[0]) return []
+      return [await blobZuDataUrl(await bildOptimieren(bilder[0], 360, 0.6))]
     },
   }
 }

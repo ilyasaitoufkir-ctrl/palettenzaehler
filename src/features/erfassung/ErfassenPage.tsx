@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Camera, ChevronRight, ClipboardEdit, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
+import { Camera, ChevronRight, ClipboardEdit, Images, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Bestaetigen, Leer, Seitenkopf, Spinner } from '../../components/ui'
 import { BildFehler, bildOptimieren } from '../../lib/utils/bild'
@@ -60,6 +60,7 @@ export function ErfassenPage() {
   const [sendet, setSendet] = useState(false)
   const [loeschen, setLoeschen] = useState<QueueEintrag | null>(null)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
+  const mehrereRef = useRef<HTMLInputElement>(null)
 
   useEffect(
     () => () => {
@@ -106,6 +107,17 @@ export function ErfassenPage() {
       const inp = inputs.current[i]
       if (inp) inp.value = ''
     }
+  }
+
+  /** Mehrere Fotos aus der Mediathek auf einmal in die freien Plätze legen */
+  const mehrereSetzen = async (liste: FileList | null) => {
+    if (!liste?.length) return
+    const frei = fotos.map((f, i) => (f ? -1 : i)).filter((i) => i >= 0)
+    const dateien = Array.from(liste).slice(0, frei.length || 3)
+    const ziele = frei.length ? frei : [0, 1, 2]
+    if (liste.length > ziele.length) toast(`Es passen ${ziele.length} Fotos, die übrigen wurden ignoriert.`, 'info')
+    for (const [k, d] of dateien.entries()) await fotoSetzen(ziele[k], d)
+    if (mehrereRef.current) mehrereRef.current.value = ''
   }
 
   const entfernen = (i: number) =>
@@ -156,7 +168,7 @@ export function ErfassenPage() {
     <>
       <Seitenkopf
         titel="Palette erfassen"
-        unter="Bis zu drei Fotos derselben Palette."
+        unter="Bis zu drei Fotos derselben Palette, mit Kamera oder aus der Mediathek."
         aktion={
           <Link to="/manuell" className="btn btn-secondary">
             <ClipboardEdit className="size-5" /> Manuell
@@ -194,7 +206,7 @@ export function ErfassenPage() {
                     aria-label={`${name} fotografieren`}
                   >
                     {verarbeitet === i ? <Spinner className="size-7" /> : <Camera className="size-8" />}
-                    <span className="text-xs font-semibold">{i === 0 ? 'Foto aufnehmen' : 'Optional'}</span>
+                    <span className="text-xs font-semibold">{i === 0 ? 'Foto' : 'Optional'}</span>
                   </button>
                 )}
               </div>
@@ -205,7 +217,6 @@ export function ErfassenPage() {
                 }}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={(e) => fotoSetzen(i, e.target.files?.[0])}
               />
@@ -214,7 +225,12 @@ export function ErfassenPage() {
         })}
       </div>
 
-      <button className="btn btn-primary btn-lg mt-5 w-full" onClick={starten} disabled={!vorhandene.length || sendet || verarbeitet !== null}>
+      <button className="btn btn-secondary mt-4 w-full" onClick={() => mehrereRef.current?.click()} disabled={verarbeitet !== null}>
+        <Images className="size-5" /> Fotos aus Mediathek wählen
+      </button>
+      <input ref={mehrereRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => mehrereSetzen(e.target.files)} />
+
+      <button className="btn btn-primary btn-lg mt-3 w-full" onClick={starten} disabled={!vorhandene.length || sendet || verarbeitet !== null}>
         {sendet ? <Spinner /> : <ScanLine className="size-6" />}
         {online ? 'Palette analysieren' : 'Offline speichern'}
       </button>

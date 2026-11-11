@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowDownUp, ClipboardList, Download, Search } from 'lucide-react'
+import { ArrowDownUp, ClipboardList, Download, FileSpreadsheet, FileText, Image as ImageIcon, Search } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
-import { KonfidenzBadge, Leer, Seitenkopf, Sheet } from '../../components/ui'
-import { dateiHerunterladen, inventurCsv, sollIstAbgleich, sollIstCsv } from '../../lib/utils/csv'
+import { KonfidenzBadge, Leer, Seitenkopf, Sheet, Spinner } from '../../components/ui'
+import { inventurCsv, sollIstAbgleich, sollIstCsv } from '../../lib/utils/csv'
+import { dateiAusgeben } from '../../lib/utils/download'
 import { dateinameSicher, zeitRelativ } from '../../lib/utils/format'
 import type { Position } from '../../types'
-
-const EINGEBETTET = import.meta.env.VITE_ROUTER === 'memory'
 
 type Filter = 'alle' | 'niedrig' | 'ohne' | 'manuell'
 type Sortierung = 'neu' | 'alt' | 'menge' | 'platz' | 'artikel'
@@ -28,6 +27,8 @@ export function ListePage() {
   const [filter, setFilter] = useState<Filter>('alle')
   const [sortierung, setSortierung] = useState<Sortierung>('neu')
   const [csvVorschau, setCsvVorschau] = useState<{ name: string; text: string } | null>(null)
+  const [exportOffen, setExportOffen] = useState(false)
+  const [exportLaeuft, setExportLaeuft] = useState(false)
 
   const gefiltert = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -61,32 +62,30 @@ export function ListePage() {
     )
   }
 
-  const ausgeben = async (name: string, text: string) => {
-    if (EINGEBETTET) {
-      // auf der Claude Seite über die Download Freigabe speichern, sonst Text zum Kopieren zeigen
-      const c = (globalThis as unknown as { claude?: { use(n: string): Promise<unknown> } }).claude
-      const dl = c ? ((await c.use('downloads').catch(() => null)) as { save(r: { filename: string; data: Blob }): Promise<unknown> } | null) : null
-      if (dl) {
-        try {
-          await dl.save({ filename: name, data: new Blob([text], { type: 'text/csv;charset=utf-8' }) })
-          toast('CSV gespeichert')
-          return
-        } catch (e) {
-          if ((e as { code?: string }).code === 'declined') return
-        }
-      }
-      return setCsvVorschau({ name, text })
+  const ausgeben = async (name: string, blob: Blob, csvText?: string) => {
+    const r = await dateiAusgeben(name, blob)
+    if (r === 'gespeichert' || r === 'geteilt') toast(r === 'geteilt' ? 'Datei bereit zum Speichern oder Teilen' : 'Datei gespeichert')
+    else if (r === 'nicht_moeglich') {
+      if (csvText) setCsvVorschau({ name, text: csvText })
+      else toast('Speichern ist hier nicht möglich.', 'fehler')
     }
-    dateiHerunterladen(name, text)
-    toast('CSV exportiert')
   }
   const basisName = `${dateinameSicher(aktiveInventur.name)}_${aktiveInventur.datum}`
-  const exportieren = () => {
-    if (!positionen.length) return toast('Noch keine Positionen zum Exportieren.', 'fehler')
-    ausgeben(`${basisName}.csv`, inventurCsv(positionen))
-  }
-  const abgleichExportieren = () => {
-    ausgeben(`${basisName}_soll-ist.csv`, sollIstCsv(abgleich))
+  const csvAusgeben = (name: string, text: string) => ausgeben(name, new Blob([text], { type: 'text/csv;charset=utf-8' }), text)
+
+  const excelAusgeben = async (mitFotos: boolean) => {
+    if (!positionen.length && !artikel.length) return toast('Noch nichts zum Exportieren.', 'fehler')
+    setExportLaeuft(true)
+    try {
+      const { inventurExcel } = await import('../export/excel')
+      const blob = await inventurExcel(aktiveInventur, positionen, artikel, { mitFotos })
+      setExportOffen(false)
+      await ausgeben(`${basisName}.xlsx`, blob)
+    } catch {
+      toast('Die Excel Datei konnte nicht erstellt werden.', 'fehler')
+    } finally {
+      setExportLaeuft(false)
+    }
   }
 
   const summe = gefiltert.reduce((s, p) => s + p.menge, 0)
@@ -97,8 +96,8 @@ export function ListePage() {
         titel="Inventurliste"
         unter={aktiveInventur.name}
         aktion={
-          <button className="btn btn-secondary" onClick={ansicht === 'abgleich' ? abgleichExportieren : exportieren}>
-            <Download className="size-5" /> CSV
+          <button className="btn btn-primary" onClick={() => setExportOffen(true)}>
+            <Download className="size-5" /> Export
           </button>
         }
       />
@@ -246,10 +245,51 @@ export function ListePage() {
           )}
         </>
       )}
+      <Sheet offen={exportOffen} onClose={() => !exportLaeuft && setExportOffen(false)} titel="Inventur exportieren">
+        <div className="flex flex-col gap-3">
+          <button className="card flex items-center gap-3 px-4 py-4 text-left" disabled={exportLaeuft} onClick={() => excelAusgeben(true)}>
+            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand text-accent-ink">
+              {exportLaeuft ? <Spinner /> : <ImageIcon className="size-5" />}
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">Excel mit Fotos</p>
+              <p className="text-sm text-ink-2">Alle Paletten mit Foto, Soll/Ist Blatt und Summen</p>
+            </div>
+          </button>
+          <button className="card flex items-center gap-3 px-4 py-4 text-left" disabled={exportLaeuft} onClick={() => excelAusgeben(false)}>
+            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+              <FileSpreadsheet className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">Excel ohne Fotos</p>
+              <p className="text-sm text-ink-2">Kleinere Datei, gleiche Tabellen</p>
+            </div>
+          </button>
+          <button
+            className="card flex items-center gap-3 px-4 py-4 text-left"
+            disabled={exportLaeuft}
+            onClick={() => {
+              if (ansicht === 'abgleich') csvAusgeben(`${basisName}_soll-ist.csv`, sollIstCsv(abgleich))
+              else if (positionen.length) csvAusgeben(`${basisName}.csv`, inventurCsv(positionen))
+              else toast('Noch keine Positionen zum Exportieren.', 'fehler')
+              setExportOffen(false)
+            }}
+          >
+            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-2">
+              <FileText className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">CSV</p>
+              <p className="text-sm text-ink-2">{ansicht === 'abgleich' ? 'Soll/Ist als einfache Textdatei' : 'Positionen als einfache Textdatei'}</p>
+            </div>
+          </button>
+        </div>
+      </Sheet>
+
       <Sheet offen={!!csvVorschau} onClose={() => setCsvVorschau(null)} titel="CSV Export">
         {csvVorschau && (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-ink-2">In dieser Vorschau sind Downloads gesperrt. Kopiere den Inhalt und füge ihn in Excel ein oder speichere ihn als {csvVorschau.name}.</p>
+            <p className="text-sm text-ink-2">Speichern ist hier nicht möglich. Kopiere den Inhalt und füge ihn in Excel ein oder speichere ihn als {csvVorschau.name}.</p>
             <textarea id="csv-text" readOnly className="field tabular h-56 font-mono text-xs" value={csvVorschau.text.replace(/^\uFEFF/, '')} />
             <button
               className="btn btn-primary"

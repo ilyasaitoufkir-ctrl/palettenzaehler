@@ -93,5 +93,4 @@ export interface ErkennungsErgebnis {
   /** per Barcode erkannte Artikelnummer, falls das Gerät BarcodeDetector unterstützt */
   barcodeArtikelnummer: string | null
   barcodeWerte: string[]
-  demo: boolean
 }

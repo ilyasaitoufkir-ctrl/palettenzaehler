@@ -9,13 +9,11 @@ export type AuthZustand =
 export type Abmelden = () => void
 
 /**
- * Datenzugriff der App. Es gibt zwei Umsetzungen:
- * Firebase (Produktion) und Demo (lokal im Browser, ohne Schlüssel).
+ * Datenzugriff der App: Firebase (gemeinsam fürs Team), lokal (auf dem Gerät) oder als Claude Seite.
  */
 export interface DataRepo {
-  readonly demo: boolean
-  /** firebase: eigene Web App, demo: lokal im Browser, artifact: als Claude Seite veröffentlicht */
-  readonly art: 'firebase' | 'demo' | 'artifact'
+  /** firebase: gemeinsame Daten, lokal: Daten auf dem Gerät, artifact: als Claude Seite veröffentlicht */
+  readonly art: 'firebase' | 'lokal' | 'artifact'
 
   onAuth(cb: (z: AuthZustand) => void): Abmelden
   login(email: string, passwort: string): Promise<void>

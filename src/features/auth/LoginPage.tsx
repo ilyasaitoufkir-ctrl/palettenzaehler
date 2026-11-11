@@ -3,14 +3,15 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { Boxes, LogIn } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Spinner } from '../../components/ui'
-import { KI_ECHT } from '../../lib/config'
 
 function meldung(code: string | undefined): string {
   switch (code) {
     case 'auth/invalid-email':
       return 'Die E-Mail Adresse ist ungültig.'
     case 'auth/missing-password':
-      return 'Bitte Passwort eingeben.'
+      return 'Bitte Passwort bzw. Zugangscode eingeben.'
+    case 'auth/missing-name':
+      return 'Bitte deinen Namen eingeben.'
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
@@ -27,8 +28,9 @@ function meldung(code: string | undefined): string {
 export function LoginPage() {
   const { repo, auth } = useApp()
   const ort = useLocation()
-  const [email, setEmail] = useState(repo.demo ? 'demo@beispiel.de' : '')
-  const [passwort, setPasswort] = useState(repo.demo && !KI_ECHT ? 'demo' : '')
+  const lokal = repo.art === 'lokal'
+  const [email, setEmail] = useState('')
+  const [passwort, setPasswort] = useState('')
   const [laeuft, setLaeuft] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -76,24 +78,22 @@ export function LoginPage() {
         <p className="mt-2 text-ink-2">Paletten fotografieren, Menge prüfen, Inventur fertig.</p>
       </div>
 
-      {repo.demo && (
-        <div className="mb-5 rounded-[14px] bg-info-soft px-4 py-3 text-sm text-info">
-          {KI_ECHT
-            ? 'Melde dich mit deinem Namen oder deiner E-Mail und dem Zugangscode an. Die Inventurdaten bleiben auf diesem Gerät.'
-            : 'Demo Modus: Anmeldung mit beliebiger E-Mail. Alle Daten bleiben in diesem Browser.'}
+      {lokal && (
+        <div className="mb-5 rounded-[14px] bg-accent-soft px-4 py-3 text-sm text-ink-2">
+          Melde dich mit deinem Namen und dem Zugangscode an. Die Inventurdaten werden auf diesem Gerät gespeichert.
         </div>
       )}
 
       <form onSubmit={absenden} className="flex flex-col gap-4" noValidate>
         <div>
           <label className="label" htmlFor="login-email">
-            {repo.demo && KI_ECHT ? 'Name oder E-Mail' : 'E-Mail'}
+            {lokal ? 'Name' : 'E-Mail'}
           </label>
-          <input id="login-email" className="field" type={repo.demo && KI_ECHT ? 'text' : 'email'} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input id="login-email" className="field" type={lokal ? 'text' : 'email'} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <div>
           <label className="label" htmlFor="login-pw">
-            {repo.demo && KI_ECHT ? 'Zugangscode' : 'Passwort'}
+            {lokal ? 'Zugangscode' : 'Passwort'}
           </label>
           <input
             id="login-pw"
@@ -115,13 +115,13 @@ export function LoginPage() {
           {laeuft ? <Spinner /> : <LogIn className="size-5" />}
           Anmelden
         </button>
-        {!repo.demo && (
+        {!lokal && (
           <button type="button" className="btn btn-ghost" onClick={zuruecksetzen}>
             Passwort vergessen
           </button>
         )}
       </form>
-      {!repo.demo && <p className="mt-8 text-center text-xs text-ink-3">Konten werden von der Administration angelegt und freigeschaltet.</p>}
+      {!lokal && <p className="mt-8 text-center text-xs text-ink-3">Konten werden von der Administration angelegt und freigeschaltet.</p>}
     </div>
   )
 }

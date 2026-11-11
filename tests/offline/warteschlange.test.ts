@@ -22,7 +22,6 @@ const ergebnis: ErkennungsErgebnis = {
   },
   barcodeArtikelnummer: null,
   barcodeWerte: [],
-  demo: true,
 }
 const eingabe: PositionEingabe = {
   artikelId: null,
@@ -48,7 +47,7 @@ function eintrag(id: string, status: QueueEintrag['status'] = 'wartet'): QueueEi
 function fakeRepo() {
   const positionen = new Map<string, PositionEingabe & { fotoUrls?: string[] }>()
   const repo = {
-    demo: false,
+    art: 'firebase',
     positionAnlegen: vi.fn(async (_i: string, id: string, e: PositionEingabe) => {
       positionen.set(id, { ...e })
     }),

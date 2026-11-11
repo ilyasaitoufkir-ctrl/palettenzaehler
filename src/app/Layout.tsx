@@ -2,8 +2,6 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Boxes, Camera, ClipboardList, LayoutGrid, LogOut, Monitor, Moon, Package, Sun, WifiOff } from 'lucide-react'
 import { useApp } from './AppContext'
 import { useTheme } from '../hooks/useTheme'
-import { KI_ECHT } from '../lib/config'
-import { demoZuruecksetzen } from '../lib/data/demoRepo'
 
 const NAV = [
   { to: '/', label: 'Übersicht', icon: LayoutGrid, end: true },
@@ -14,7 +12,7 @@ const NAV = [
 ]
 
 export function Layout() {
-  const { repo, online, nutzer, aktiveInventur, warteschlange, toast } = useApp()
+  const { repo, online, nutzer, aktiveInventur, warteschlange } = useApp()
   const { thema, weiter } = useTheme()
   const navigate = useNavigate()
   const offen = warteschlange.filter((w) => w.status === 'bereit').length
@@ -26,20 +24,6 @@ export function Layout() {
         className="sticky z-30 border-b border-line bg-bg/90 backdrop-blur"
         style={{ top: 'env(safe-area-inset-top, 0px)' }}
       >
-        {repo.demo && (
-          <div className="flex items-center justify-between gap-2 bg-info-soft px-4 py-1.5 text-xs font-medium text-info">
-            <span>{KI_ECHT ? 'Echte KI Erkennung, Daten nur auf diesem Gerät' : 'Demo Modus: Beispieldaten, KI Erkennung simuliert'}</span>
-            {!KI_ECHT && <button
-              className="underline underline-offset-2"
-              onClick={() => {
-                demoZuruecksetzen()
-                toast('Demo Daten zurückgesetzt', 'info')
-              }}
-            >
-              Zurücksetzen
-            </button>}
-          </div>
-        )}
         <div className="flex items-center gap-2 px-4 py-2.5">
           <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-accent-ink">
             <Boxes className="size-5" />

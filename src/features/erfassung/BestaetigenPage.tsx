@@ -67,7 +67,6 @@ export function BestaetigenPage() {
         hinweise: ki.hinweise,
         etikett: ki.etikett_text,
         beschreibung: ki.beschreibung,
-        demo: !!eintrag.ergebnis?.demo,
         barcodeTreffer: eintrag.ergebnis?.barcodeArtikelnummer ?? null,
       }
     : null

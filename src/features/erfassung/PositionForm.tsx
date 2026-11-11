@@ -22,7 +22,6 @@ export interface KiAnzeige {
   hinweise: string
   etikett: string | null
   beschreibung: string
-  demo: boolean
   barcodeTreffer: string | null
 }
 
@@ -110,7 +109,7 @@ export function PositionForm({
         <div className="card flex flex-col gap-3 px-4 py-4">
           <div className="flex items-center justify-between gap-2">
             <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              <Sparkles className="size-4 text-accent" /> {ki.demo ? 'KI Vorschlag (simuliert)' : 'KI Vorschlag'}
+              <Sparkles className="size-4 text-accent" /> KI Vorschlag
             </span>
             <KonfidenzBadge wert={ki.konfidenz} mitLabel />
           </div>

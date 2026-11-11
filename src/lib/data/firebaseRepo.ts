@@ -109,7 +109,6 @@ export function createFirebaseRepo(): DataRepo {
   const { auth, db, storage } = firebase()
 
   return {
-    demo: false,
     art: 'firebase',
 
     onAuth(cb) {
