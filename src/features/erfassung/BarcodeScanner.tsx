@@ -7,7 +7,17 @@ import { Spinner } from '../../components/ui'
  * Vollbild Live Scanner: Kamera läuft, jedes Bild wird nach einem Barcode durchsucht.
  * Beim ersten Treffer vibriert das Handy (wo möglich) und der Wert wird zurückgegeben.
  */
-export function BarcodeScanner({ onTreffer, onClose }: { onTreffer: (werte: string[]) => void; onClose: () => void }) {
+export function BarcodeScanner({
+  onTreffer,
+  onClose,
+  titel = 'Barcode scannen',
+  hinweis = 'Barcode oder NVE Etikett in den Rahmen halten. Funktioniert auch mit QR und DataMatrix.',
+}: {
+  onTreffer: (werte: string[]) => void
+  onClose: () => void
+  titel?: string
+  hinweis?: string
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [fehler, setFehler] = useState<string | null>(null)
   const [bereit, setBereit] = useState(false)
@@ -75,9 +85,9 @@ export function BarcodeScanner({ onTreffer, onClose }: { onTreffer: (werte: stri
   }, [])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white" role="dialog" aria-modal="true" aria-label="Barcode scannen">
+    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white" role="dialog" aria-modal="true" aria-label={titel}>
       <div className="flex items-center justify-between px-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 12 }}>
-        <p className="font-semibold">Barcode scannen</p>
+        <p className="font-semibold">{titel}</p>
         <button className="btn btn-icon bg-white/15 text-white" onClick={onClose} aria-label="Scanner schließen">
           <X className="size-6" />
         </button>
@@ -96,7 +106,7 @@ export function BarcodeScanner({ onTreffer, onClose }: { onTreffer: (werte: stri
         {fehler && <p className="absolute inset-x-4 top-1/3 rounded-2xl bg-black/70 px-4 py-3 text-center">{fehler}</p>}
       </div>
       <p className="px-6 py-5 text-center text-sm text-white/80" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)' }}>
-        Barcode oder NVE Etikett in den Rahmen halten. Funktioniert auch mit QR und DataMatrix.
+        {hinweis}
       </p>
     </div>
   )

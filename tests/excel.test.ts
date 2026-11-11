@@ -8,7 +8,7 @@ const pixel = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQ
 const pos = (o: Partial<Position>): Position => ({
   id: 'p', inventurId: 'i', artikelId: null, artikelnummer: 'A-1', bezeichnung: 'Öl', gebindeart: 'Kanister 25 l',
   lagen: 2, stueckProLage: 12, fehlend: 0, menge: 24, lagerplatz: 'A1', konfidenz: 'hoch', quelle: 'ki', kiGesamt: 24,
-  kiHinweise: '', etikettText: null, palettenNummer: '', charge: '', sollMenge: null, fotoUrls: [pixel], erstelltVon: 'ilo', erstelltVonUid: 'u', erstelltAm: Date.now(), geaendertAm: 0, geaendertVon: '', ...o,
+  kiHinweise: '', etikettText: null, palettenNummer: '', charge: '', sollMenge: null, lagerplatzLaut: '', pruefStatus: 'nicht_noetig' as const, geprueftVon: '', geprueftAm: null, protokoll: [], fotoUrls: [pixel], erstelltVon: 'ilo', erstelltVonUid: 'u', erstelltAm: Date.now(), geaendertAm: 0, geaendertVon: '', ...o,
 })
 const art: Artikel = { id: 'a', artikelnummer: 'A-1', bezeichnung: 'Öl', gebindeart: 'Kanister', gebindegroesse: '25 l', stueckProLage: 12, lagenProPalette: 2, barcode: null, sollbestand: 50, referenzfotoUrl: null, aktualisiertAm: 0 }
 
@@ -17,7 +17,7 @@ describe('Excel Export', () => {
     const blob = await inventurExcel(inv, [pos({ id: '1' }), pos({ id: '2', menge: 20, fehlend: 4, konfidenz: 'niedrig' })], [art], { mitFotos: true })
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.load(await blob.arrayBuffer())
-    expect(wb.worksheets.map((w) => w.name)).toEqual(['Inventur', 'Soll-Ist', 'Info'])
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Inventur', 'Soll-Ist', 'Protokoll', 'Info'])
     const ws = wb.getWorksheet('Inventur')!
     expect(ws.getRow(1).getCell(1).value).toBe('Foto')
     expect(ws.getImages().length).toBe(2)

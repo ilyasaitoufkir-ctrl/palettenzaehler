@@ -22,6 +22,8 @@ export interface QueueEintrag {
   wiederholbar: boolean
   ergebnis: ErkennungsErgebnis | null
   versuche: number
+  /** Lagerplatz, der beim Fotografieren aktiv war (leer, wenn keiner gewählt) */
+  lagerplatz?: string
   erstelltAm: number
   aktualisiertAm: number
 }

@@ -13,6 +13,8 @@ const ROT_HELL = 'FFFBE3E0'
 const GRUEN_HELL = 'FFE3F3E8'
 
 const KONF_TEXT: Record<Position['konfidenz'], string> = { hoch: 'hoch', mittel: 'mittel', niedrig: 'niedrig (nachzählen)', manuell: 'manuell' }
+const PRUEF_TEXT: Record<Position['pruefStatus'], string> = { nicht_noetig: 'nicht nötig', offen: 'Nachzählung offen', geprueft: 'nachgezählt' }
+const AKTION_TEXT: Record<import('../../types').Protokolleintrag['aktion'], string> = { erfasst: 'erfasst', geaendert: 'geändert', geprueft: 'nachgezählt' }
 
 async function bildDaten(url: string): Promise<{ base64: string; extension: 'jpeg' | 'png' } | null> {
   try {
@@ -41,8 +43,8 @@ interface ExportOptionen {
 }
 
 /**
- * Erzeugt eine Excel Datei (.xlsx) mit drei Blättern:
- * Inventur (alle Positionen, optional mit Foto je Palette), Soll-Ist und Info.
+ * Erzeugt eine Excel Datei (.xlsx) mit vier Blättern:
+ * Inventur (alle Positionen, optional mit Foto je Palette), Soll-Ist, Protokoll (wer hat wann was geändert) und Info.
  */
 export async function inventurExcel(inventur: Inventur, positionen: Position[], artikel: Artikel[], opt: ExportOptionen): Promise<Blob> {
   const ExcelJS = await excel()
@@ -80,6 +82,9 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
     { header: 'Etikett', key: 'etikett', width: 20 },
     { header: 'Erfasst am', key: 'zeit', width: 17 },
     { header: 'Erfasst von', key: 'nutzer', width: 22 },
+    { header: 'Lagerplatz laut Bestand', key: 'platzLaut', width: 18 },
+    { header: 'Prüfung', key: 'pruef', width: 20 },
+    { header: 'Nachgezählt von', key: 'geprueft', width: 22 },
   ]
   kopfStil(ws.getRow(1))
 
@@ -104,6 +109,9 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
       etikett: p.etikettText ?? '',
       zeit: new Date(p.erstelltAm),
       nutzer: p.erstelltVon,
+      platzLaut: p.lagerplatzLaut,
+      pruef: PRUEF_TEXT[p.pruefStatus],
+      geprueft: p.geprueftVon,
     })
     z.alignment = { vertical: 'middle', wrapText: true }
     z.getCell('zeit').numFmt = 'dd.mm.yyyy hh:mm'
@@ -151,7 +159,30 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
     r.getCell('diff').font = { bold: true }
   }
 
-  // ── Blatt 3: Info ─────────────────────────────────────────────────
+  // ── Blatt 3: Protokoll (Audit Trail, zeitlich sortiert) ───────────
+  const pr = wb.addWorksheet('Protokoll', { views: [{ state: 'frozen', ySplit: 1 }] })
+  pr.columns = [
+    { header: 'Zeitpunkt', key: 'zeit', width: 17 },
+    { header: 'Aktion', key: 'aktion', width: 14 },
+    { header: 'Nutzer', key: 'nutzer', width: 24 },
+    { header: 'Palettennummer', key: 'palette', width: 20 },
+    { header: 'Artikelnummer', key: 'nr', width: 16 },
+    { header: 'Lagerplatz', key: 'platz', width: 12 },
+    { header: 'Details', key: 'details', width: 70 },
+  ]
+  kopfStil(pr.getRow(1))
+  const ereignisse = sortiert
+    .flatMap((p) => (p.protokoll ?? []).map((e) => ({ e, p })))
+    .sort((a, b) => a.e.zeit - b.e.zeit)
+  for (const { e, p } of ereignisse) {
+    const z = pr.addRow({ zeit: new Date(e.zeit), aktion: AKTION_TEXT[e.aktion], nutzer: e.nutzer, palette: p.palettenNummer, nr: p.artikelnummer, platz: p.lagerplatz, details: e.details })
+    z.getCell('zeit').numFmt = 'dd.mm.yyyy hh:mm'
+    z.alignment = { vertical: 'middle', wrapText: true }
+  }
+  if (!ereignisse.length) pr.addRow({ details: 'Noch keine Einträge' })
+  pr.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, pr.rowCount), column: pr.columnCount } }
+
+  // ── Blatt 4: Info ─────────────────────────────────────────────────
   const info = wb.addWorksheet('Info')
   info.columns = [
     { key: 'k', width: 22 },
@@ -165,6 +196,8 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
     ['Paletten', positionen.length],
     ['Gebinde gesamt', positionen.reduce((s, p) => s + p.menge, 0)],
     ['Davon nachzählen', positionen.filter((p) => p.konfidenz === 'niedrig').length],
+    ['Nachzählung offen', positionen.filter((p) => p.pruefStatus === 'offen').length],
+    ['Nachgezählt (2. Person)', positionen.filter((p) => p.pruefStatus === 'geprueft').length],
     ['Exportiert am', new Date()],
   ]
   for (const [k, v] of zeilen) {

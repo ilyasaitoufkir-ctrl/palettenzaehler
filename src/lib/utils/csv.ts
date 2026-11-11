@@ -37,6 +37,8 @@ export const INVENTUR_SPALTEN = [
   'Konfidenz',
   'Zeitstempel',
   'Nutzer',
+  'Prüfung',
+  'Nachgezählt von',
 ]
 
 export function inventurCsv(positionen: Position[]): string {
@@ -54,6 +56,8 @@ export function inventurCsv(positionen: Position[]): string {
       p.konfidenz,
       zeitstempelDe(p.erstelltAm),
       p.erstelltVon,
+      p.pruefStatus === 'offen' ? 'Nachzählung offen' : p.pruefStatus === 'geprueft' ? 'nachgezählt' : 'nicht nötig',
+      p.geprueftVon,
     ]),
   )
 }

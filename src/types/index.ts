@@ -43,6 +43,19 @@ export type ArtikelEingabe = Omit<Artikel, 'id' | 'aktualisiertAm' | 'referenzfo
 
 export type PositionsQuelle = 'ki' | 'manuell'
 
+/** nicht_noetig: keine Abweichung. offen: wartet auf Nachzählung durch eine zweite Person. geprueft: zweite Person hat bestätigt. */
+export type PruefStatus = 'nicht_noetig' | 'offen' | 'geprueft'
+
+export type ProtokollAktion = 'erfasst' | 'geaendert' | 'geprueft'
+
+/** Ein Eintrag im unveränderlichen Protokoll einer Position (wer, wann, was) */
+export interface Protokolleintrag {
+  zeit: number
+  nutzer: string
+  aktion: ProtokollAktion
+  details: string
+}
+
 export interface Position {
   id: string
   inventurId: string
@@ -67,6 +80,12 @@ export interface Position {
   charge: string
   /** Menge laut Bestandsliste für diese Palette (Soll), falls bekannt */
   sollMenge: number | null
+  /** Lagerplatz laut Bestandsliste, leer wenn unbekannt */
+  lagerplatzLaut: string
+  pruefStatus: PruefStatus
+  geprueftVon: string
+  geprueftAm: number | null
+  protokoll: Protokolleintrag[]
   fotoUrls: string[]
   erstelltVon: string
   erstelltVonUid: string
@@ -79,6 +98,9 @@ export type PositionEingabe = Omit<
   Position,
   'id' | 'inventurId' | 'erstelltVon' | 'erstelltVonUid' | 'erstelltAm' | 'geaendertAm' | 'geaendertVon' | 'fotoUrls'
 >
+
+/** Angaben aus dem Formular. Prüfstatus und Protokoll setzt der Aufrufer. */
+export type PositionBasis = Omit<PositionEingabe, 'lagerplatzLaut' | 'pruefStatus' | 'geprueftVon' | 'geprueftAm' | 'protokoll'>
 
 /** Ergebnis der KI Analyse, bereits serverseitig validiert */
 export interface KiErgebnis {

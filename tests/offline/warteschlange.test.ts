@@ -41,7 +41,7 @@ const eingabe: PositionEingabe = {
   quelle: 'ki',
   kiGesamt: 30,
   kiHinweise: '',
-  etikettText: null, palettenNummer: '', charge: '', sollMenge: null,
+  etikettText: null, palettenNummer: '', charge: '', sollMenge: null, lagerplatzLaut: '', pruefStatus: 'nicht_noetig' as const, geprueftVon: '', geprueftAm: null, protokoll: [], 
 }
 
 function eintrag(id: string, status: QueueEintrag['status'] = 'wartet'): QueueEintrag {

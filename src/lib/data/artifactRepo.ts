@@ -1,4 +1,4 @@
-import type { Artikel, BestandsMeta, BestandsPalette, Inventur, Position } from '../../types'
+import type { Artikel, BestandsMeta, BestandsPalette, Inventur, Position, Protokolleintrag } from '../../types'
 import { bildOptimieren } from '../utils/bild'
 import { neueId } from '../utils/id'
 import type { DataRepo } from './repo'
@@ -272,6 +272,13 @@ export async function createArtifactRepo(): Promise<DataRepo> {
           palettenNummer: str(d.palettenNummer),
           charge: str(d.charge),
           sollMenge: numN(d.sollMenge),
+          lagerplatzLaut: str(d.lagerplatzLaut),
+          pruefStatus: d.pruefStatus === 'offen' || d.pruefStatus === 'geprueft' ? d.pruefStatus : 'nicht_noetig',
+          geprueftVon: str(d.geprueftVon),
+          geprueftAm: numN(d.geprueftAm),
+          protokoll: Array.isArray(d.protokoll)
+            ? d.protokoll.filter((x): x is Protokolleintrag => !!x && typeof x === 'object').map((x) => ({ zeit: num(x.zeit), nutzer: str(x.nutzer), aktion: x.aktion, details: str(x.details) }))
+            : [],
           fotoUrls: Array.isArray(d.fotoUrls) ? d.fotoUrls.filter((u): u is string => typeof u === 'string') : [],
           erstelltVon: str(d.erstelltVon),
           erstelltVonUid: str(d.erstelltVonUid),

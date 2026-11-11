@@ -7,7 +7,7 @@ import type { PositionStart } from './PositionForm'
  * gescannte Barcodes, von der KI abgelesene Nummern, Bestandsliste und Artikelstamm.
  * Die Bestandsliste hat Vorrang, weil sie aus dem ERP kommt.
  */
-export function startwerte(nummern: string[], ki: KiErgebnis | null, bestand: BestandsPalette[], artikel: Artikel[]): PositionStart {
+export function startwerte(nummern: string[], ki: KiErgebnis | null, bestand: BestandsPalette[], artikel: Artikel[], platzAktiv = ''): PositionStart {
   const alle = [...nummern, ...(ki?.barcode_nummern ?? []), ki?.paletten_nummer ?? '', ki?.artikel_match ?? ''].filter(Boolean)
   const z = nachschlagen(alle, bestand, artikel)
   const a = z.artikel ?? (ki?.artikel_match ? (artikel.find((x) => x.artikelnummer === ki.artikel_match) ?? null) : null)
@@ -23,7 +23,9 @@ export function startwerte(nummern: string[], ki: KiErgebnis | null, bestand: Be
     lagen,
     stueckProLage: spl,
     fehlend: ki?.fehlende_stueck ?? 0,
-    lagerplatz: z.palette?.lagerplatz ?? '',
+    // der tatsächlich gescannte oder aktive Platz hat Vorrang, der Bestand dient als Vergleich
+    lagerplatz: platzAktiv.trim() || z.palette?.lagerplatz || '',
+    lagerplatzLaut: z.palette?.lagerplatz ?? '',
     palettenNummer: z.palettenNummer ?? ki?.paletten_nummer ?? '',
     charge: z.charge ?? ki?.charge ?? '',
     sollMenge: z.palette?.menge ?? null,

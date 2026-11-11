@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Barcode, Camera, ChevronRight, ClipboardEdit, Images, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
+import { Barcode, Camera, ChevronRight, ClipboardEdit, Images, MapPin, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
 import { BarcodeScanner } from './BarcodeScanner'
 import { barcodesAusBildern, liveScanMoeglich } from '../../lib/utils/barcode'
 import { PLATTFORM } from '../../lib/config'
@@ -11,6 +11,7 @@ import { neueId } from '../../lib/utils/id'
 import { zeitRelativ } from '../../lib/utils/format'
 import { STATUS_TEXT, queueAktualisieren, queueLoeschen, queueSpeichern, type QueueEintrag, type QueueStatus } from '../offline/queue'
 import { analysieren } from '../offline/verarbeitung'
+import { platzAusWerten, useAktiverLagerplatz } from './lagerplatz'
 
 const SLOTS = ['Front', 'Seite', 'Draufsicht'] as const
 
@@ -56,7 +57,7 @@ function Vorschau({ eintrag }: { eintrag: QueueEintrag }) {
 }
 
 export function ErfassenPage() {
-  const { aktiveInventur, warteschlange, artikel, erkennen, online, toast } = useApp()
+  const { aktiveInventur, warteschlange, artikel, bestand, erkennen, online, toast } = useApp()
   const navigate = useNavigate()
   const [fotos, setFotos] = useState<(Foto | null)[]>([null, null, null])
   const [verarbeitet, setVerarbeitet] = useState<number | null>(null)
@@ -65,24 +66,49 @@ export function ErfassenPage() {
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const mehrereRef = useRef<HTMLInputElement>(null)
   const scanFotoRef = useRef<HTMLInputElement>(null)
+  const scanPlatzFotoRef = useRef<HTMLInputElement>(null)
   const [scannerOffen, setScannerOffen] = useState(false)
+  const [scanZweck, setScanZweck] = useState<'palette' | 'platz'>('palette')
   const [scanLaeuft, setScanLaeuft] = useState(false)
+  const [platz, setPlatz] = useAktiverLagerplatz()
   const live = PLATTFORM !== 'artifact' && liveScanMoeglich()
 
-  const gescannt = (werte: string[]) => {
+  /** bekannte Lagerplätze aus dem Bestand, für die Auswahl beim Scannen */
+  const platzSet = new Set(bestand.map((b) => b.lagerplatz.trim().toLowerCase()).filter(Boolean))
+  const aktuell = platz.trim().toLowerCase()
+  const aufPlatz = aktuell ? bestand.filter((b) => b.lagerplatz.trim().toLowerCase() === aktuell).length : 0
+
+  /** Ergebnis eines Scans: Lagerplatz setzen oder die Palette zur Prüfung geben */
+  const uebernehmen = (werte: string[], zweck: 'palette' | 'platz') => {
     setScannerOffen(false)
-    navigate('/manuell', { state: { scan: werte } })
+    if (zweck === 'platz') {
+      const neu = platzAusWerten(werte, platzSet)
+      if (neu) {
+        setPlatz(neu)
+        toast(`Lagerplatz ${neu} ist aktiv`)
+      } else {
+        toast('Kein Lagerplatz erkannt', 'fehler')
+      }
+      return
+    }
+    navigate('/manuell', { state: { scan: werte, platz: platz.trim() } })
   }
-  const scanAusFoto = async (datei: File | undefined) => {
+  const oeffneScan = (zweck: 'palette' | 'platz') => {
+    setScanZweck(zweck)
+    if (live) setScannerOffen(true)
+    else (zweck === 'platz' ? scanPlatzFotoRef : scanFotoRef).current?.click()
+  }
+  const scanAusFoto = async (datei: File | undefined, zweck: 'palette' | 'platz') => {
     if (!datei) return
     setScanLaeuft(true)
     try {
       const werte = await barcodesAusBildern([datei])
-      if (werte.length) gescannt(werte)
+      if (werte.length) uebernehmen(werte, zweck)
       else toast('Auf dem Foto wurde kein Barcode gefunden. Näher ran und scharf stellen.', 'fehler')
     } finally {
       setScanLaeuft(false)
       if (scanFotoRef.current) scanFotoRef.current.value = ''
+      if (scanPlatzFotoRef.current) scanPlatzFotoRef.current.value = ''
     }
   }
 
@@ -163,6 +189,7 @@ export function ErfassenPage() {
         id,
         inventurId: aktiveInventur.id,
         bilder: vorhandene.map((f) => f.blob),
+        lagerplatz: platz.trim(),
         status: 'wartet',
         fehler: null,
         wiederholbar: true,
@@ -200,11 +227,31 @@ export function ErfassenPage() {
         }
       />
 
-      <button
-        className="card mb-5 flex w-full items-center gap-3 px-4 py-4 text-left"
-        onClick={() => (live ? setScannerOffen(true) : scanFotoRef.current?.click())}
-        disabled={scanLaeuft}
-      >
+      <section className="card mb-3 flex flex-col gap-3 px-4 py-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="eyebrow">Aktiver Lagerplatz</p>
+          {aktuell && bestand.length > 0 && <span className="text-xs text-ink-2">{aufPlatz} Paletten laut Bestand</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            className="field min-w-0 flex-1"
+            placeholder="z. B. A-01-2"
+            value={platz}
+            maxLength={40}
+            onChange={(e) => setPlatz(e.target.value)}
+            aria-label="Aktiver Lagerplatz"
+          />
+          <button className="btn btn-secondary shrink-0" onClick={() => oeffneScan('platz')} disabled={scanLaeuft}>
+            {scanLaeuft && scanZweck === 'platz' ? <Spinner /> : <MapPin className="size-5" />} Scannen
+          </button>
+        </div>
+        <p className="text-xs text-ink-3">
+          {aktuell ? 'Jede Palette wird diesem Platz zugeordnet, bis du ihn änderst.' : 'Tipp: erst den Lagerplatz scannen, dann die Palette. Dann muss die App nichts raten.'}
+        </p>
+      </section>
+      <input ref={scanPlatzFotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => scanAusFoto(e.target.files?.[0], 'platz')} />
+
+      <button className="card mb-5 flex w-full items-center gap-3 px-4 py-4 text-left" onClick={() => oeffneScan('palette')} disabled={scanLaeuft}>
         <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-accent-ink">
           {scanLaeuft ? <Spinner /> : <Barcode className="size-6" />}
         </div>
@@ -214,8 +261,15 @@ export function ErfassenPage() {
         </div>
         <ChevronRight className="size-5 text-ink-3" />
       </button>
-      <input ref={scanFotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => scanAusFoto(e.target.files?.[0])} />
-      {scannerOffen && <BarcodeScanner onTreffer={gescannt} onClose={() => setScannerOffen(false)} />}
+      <input ref={scanFotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => scanAusFoto(e.target.files?.[0], 'palette')} />
+      {scannerOffen && (
+        <BarcodeScanner
+          onTreffer={(werte) => uebernehmen(werte, scanZweck)}
+          onClose={() => setScannerOffen(false)}
+          titel={scanZweck === 'platz' ? 'Lagerplatz scannen' : 'Barcode scannen'}
+          hinweis={scanZweck === 'platz' ? 'Lagerplatz Etikett in den Rahmen halten.' : undefined}
+        />
+      )}
 
       <p className="eyebrow mb-2">Oder per Foto zählen lassen</p>
       <div className="grid grid-cols-3 gap-3">

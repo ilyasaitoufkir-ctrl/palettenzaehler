@@ -8,7 +8,7 @@ import { dateiAusgeben } from '../../lib/utils/download'
 import { dateinameSicher, zeitRelativ } from '../../lib/utils/format'
 import type { Position } from '../../types'
 
-type Filter = 'alle' | 'niedrig' | 'ohne' | 'manuell'
+type Filter = 'alle' | 'niedrig' | 'ohne' | 'manuell' | 'pruefen'
 type Sortierung = 'neu' | 'alt' | 'menge' | 'platz' | 'artikel'
 
 const SORT: Record<Sortierung, { text: string; fn: (a: Position, b: Position) => number }> = {
@@ -37,6 +37,7 @@ export function ListePage() {
         if (filter === 'niedrig' && p.konfidenz !== 'niedrig') return false
         if (filter === 'ohne' && p.artikelnummer) return false
         if (filter === 'manuell' && p.konfidenz !== 'manuell') return false
+        if (filter === 'pruefen' && p.pruefStatus !== 'offen') return false
         if (!s) return true
         return [p.artikelnummer, p.bezeichnung, p.lagerplatz, p.gebindeart, p.erstelltVon, p.palettenNummer, p.charge].some((f) => f.toLowerCase().includes(s))
       })
@@ -45,6 +46,7 @@ export function ListePage() {
 
   const abgleich = useMemo(() => sollIstAbgleich(positionen, artikel), [positionen, artikel])
   const niedrig = positionen.filter((p) => p.konfidenz === 'niedrig').length
+  const offenePruefung = positionen.filter((p) => p.pruefStatus === 'offen').length
   const ohne = positionen.filter((p) => !p.artikelnummer).length
 
   if (!aktiveInventur) {
@@ -185,7 +187,8 @@ export function ListePage() {
             {(
               [
                 ['alle', `Alle`],
-                ['niedrig', `Nachzählen (${niedrig})`],
+                ['niedrig', `Niedrige Konfidenz (${niedrig})`],
+                ['pruefen', `Nachzählung offen (${offenePruefung})`],
                 ['ohne', `Ohne Artikel (${ohne})`],
                 ['manuell', 'Manuell'],
               ] as const
@@ -244,6 +247,12 @@ export function ListePage() {
                           </span>
                         )}
                         <KonfidenzBadge wert={p.konfidenz} />
+                        {p.pruefStatus === 'offen' && (
+                          <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-warn">Nachzählen</span>
+                        )}
+                        {p.pruefStatus === 'geprueft' && (
+                          <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-ok">Geprüft</span>
+                        )}
                       </div>
                     </Link>
                   </li>

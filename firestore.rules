@@ -58,9 +58,11 @@ service cloud.firestore {
           && zahlOk(request.resource.data.fehlend)
           && request.resource.data.konfidenz in ['hoch', 'mittel', 'niedrig', 'manuell']
           && textOk(request.resource.data.lagerplatz, 40);
+        // Protokoll ist ein Audit Trail: Einträge dürfen nur ergänzt, nie gekürzt werden
         allow update: if istTeam()
           && request.resource.data.erstelltVonUid == resource.data.erstelltVonUid
-          && zahlOk(request.resource.data.menge);
+          && zahlOk(request.resource.data.menge)
+          && ('protokoll' in resource.data ? request.resource.data.protokoll.size() >= resource.data.protokoll.size() : true);
         allow delete: if istTeam();
       }
     }

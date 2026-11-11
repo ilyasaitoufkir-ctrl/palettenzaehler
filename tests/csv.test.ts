@@ -19,6 +19,7 @@ const pos = (over: Partial<Position>): Position => ({
   kiGesamt: 1,
   kiHinweise: '',
   etikettText: null, palettenNummer: '', charge: '', sollMenge: null,
+  lagerplatzLaut: '', pruefStatus: 'nicht_noetig' as const, geprueftVon: '', geprueftAm: null, protokoll: [], 
   fotoUrls: [],
   erstelltVon: 'a@b.de',
   erstelltVonUid: 'u',
@@ -32,8 +33,8 @@ describe('CSV Export', () => {
   it('beginnt mit UTF-8 BOM und nutzt Semikolon', () => {
     const csv = inventurCsv([pos({})])
     expect(csv.startsWith(CSV_BOM)).toBe(true)
-    expect(csv.slice(1).split('\r\n')[0]).toBe('Artikelnummer;Bezeichnung;Gebindeart;Menge;Lagerplatz;Palettennummer;Charge;Konfidenz;Zeitstempel;Nutzer')
-    expect(csv).toContain('A-1;Öl;Kanister 5 l;1;A1;;;hoch;11.11.2026 09:05;a@b.de')
+    expect(csv.slice(1).split('\r\n')[0]).toBe('Artikelnummer;Bezeichnung;Gebindeart;Menge;Lagerplatz;Palettennummer;Charge;Konfidenz;Zeitstempel;Nutzer;Prüfung;Nachgezählt von')
+    expect(csv).toContain('A-1;Öl;Kanister 5 l;1;A1;;;hoch;11.11.2026 09:05;a@b.de;nicht nötig;')
   })
   it('erhält Umlaute', () => {
     expect(inventurCsv([pos({ bezeichnung: 'Pfefferminzöl Größe ß' })])).toContain('Pfefferminzöl Größe ß')

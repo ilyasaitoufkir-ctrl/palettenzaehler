@@ -5,6 +5,8 @@ import { useApp } from '../../app/AppContext'
 import { Leer, Spinner } from '../../components/ui'
 import { queueAktualisieren } from '../offline/queue'
 import { analysieren, positionBestaetigen } from '../offline/verarbeitung'
+import { erstErfassungsEingabe } from '../../lib/utils/pruefung'
+import type { PositionBasis } from '../../types'
 import { PositionForm, type KiAnzeige, type PositionStart } from './PositionForm'
 import { startwerte } from './startwerte'
 import { StatusPill } from './ErfassenPage'
@@ -21,7 +23,7 @@ function useObjectUrls(bilder: Blob[] | undefined) {
 
 export function BestaetigenPage() {
   const { id = '' } = useParams()
-  const { warteschlange, artikel, bestand, repo, erkennen, toast, online } = useApp()
+  const { warteschlange, artikel, bestand, repo, erkennen, toast, online, nutzer } = useApp()
   const navigate = useNavigate()
   const eintrag = warteschlange.find((w) => w.id === id)
   const fotos = useObjectUrls(eintrag?.bilder)
@@ -29,7 +31,7 @@ export function BestaetigenPage() {
 
   const ki = eintrag?.ergebnis?.ki
   const start = useMemo<PositionStart>(
-    () => startwerte(eintrag?.ergebnis?.barcodeWerte ?? [], ki ?? null, bestand, artikel),
+    () => startwerte(eintrag?.ergebnis?.barcodeWerte ?? [], ki ?? null, bestand, artikel, eintrag?.lagerplatz ?? ''),
     // nur beim ersten Ergebnis vorbelegen
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [eintrag?.ergebnis],
@@ -91,10 +93,10 @@ export function BestaetigenPage() {
     return `NEU-${String(i).padStart(3, '0')}`
   }
 
-  const bestaetigen = async (e: Parameters<typeof positionBestaetigen>[2]) => {
+  const bestaetigen = async (basis: PositionBasis) => {
     try {
-      await positionBestaetigen(repo, eintrag.id, e)
-      toast(`Position mit ${e.menge} Stück gespeichert`)
+      await positionBestaetigen(repo, eintrag.id, erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt'))
+      toast(`Position mit ${basis.menge} Stück gespeichert`)
       navigate('/erfassen')
     } catch (err) {
       toast((err as Error).message || 'Speichern fehlgeschlagen.', 'fehler')

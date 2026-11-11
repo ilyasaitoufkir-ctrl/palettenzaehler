@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { AlertTriangle, Barcode, ChevronRight, Info, Package, Plus, Search, Sparkles } from 'lucide-react'
-import type { Artikel, Konfidenz, PositionEingabe } from '../../types'
+import { AlertTriangle, Barcode, ChevronRight, Info, MapPin, Package, Plus, Search, Sparkles } from 'lucide-react'
+import type { Artikel, Konfidenz, PositionBasis, PositionEingabe } from '../../types'
 import { berechneMenge, kiWeichtAb, parseZahl } from '../../lib/utils/menge'
 import { KonfidenzBadge, Sheet, Spinner, ZahlFeld } from '../../components/ui'
 import { artikelSuche } from '../artikel/ArtikelPage'
@@ -14,6 +14,8 @@ export interface PositionStart {
   stueckProLage: number | null
   fehlend: number | null
   lagerplatz: string
+  /** Lagerplatz laut Bestandsliste, leer wenn unbekannt */
+  lagerplatzLaut: string
   palettenNummer: string
   charge: string
   /** Menge laut Bestandsliste */
@@ -61,7 +63,7 @@ export function PositionForm({
   konfidenzFest?: PositionEingabe['konfidenz']
   fotos?: string[]
   submitText: string
-  onSubmit: (e: PositionEingabe) => Promise<void> | void
+  onSubmit: (e: PositionBasis) => Promise<void> | void
   zusatz?: React.ReactNode
   /** legt aus dem KI Vorschlag einen Artikel an und liefert dessen ID */
   onNeuerArtikel?: (v: ArtikelVorschlag) => Promise<string>
@@ -298,6 +300,13 @@ export function PositionForm({
             </button>
           )}
         </div>
+      )}
+
+      {start.lagerplatzLaut && lagerplatz.trim() && lagerplatz.trim() !== start.lagerplatzLaut && (
+        <p className="flex gap-2 rounded-[14px] bg-warn-soft px-4 py-3 text-sm text-warn" role="alert">
+          <MapPin className="mt-0.5 size-4 shrink-0" />
+          Laut Bestand steht diese Palette auf {start.lagerplatzLaut}. Nach dem Speichern prüft eine zweite Person die Zählung.
+        </p>
       )}
 
       {abweichung && (
