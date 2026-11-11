@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Zugriff nur für angemeldete UND von der Administration freigeschaltete Konten.
+    // Freischalten: Dokument users/{uid} in der Firebase Konsole anlegen (z. B. { email: "...", rolle: "team" }).
+    function istTeam() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function textOk(feld, max) {
+      return feld is string && feld.size() <= max;
+    }
+    function zahlOk(feld) {
+      return feld is int && feld >= 0 && feld <= 1000000;
+    }
+
+    match /users/{uid} {
+      // Nutzer sehen nur ihr eigenes Profil, anlegen und ändern nur über die Konsole bzw. Admin SDK
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /artikel/{artikelId} {
+      allow read: if istTeam();
+      allow delete: if istTeam();
+      allow create, update: if istTeam()
+        && textOk(request.resource.data.artikelnummer, 64)
+        && request.resource.data.artikelnummer.size() > 0
+        && textOk(request.resource.data.bezeichnung, 160);
+    }
+
+    match /inventuren/{inventurId} {
+      allow read: if istTeam();
+      allow create: if istTeam()
+        && textOk(request.resource.data.name, 120)
+        && request.resource.data.status in ['aktiv', 'abgeschlossen'];
+      allow update: if istTeam()
+        && request.resource.data.status in ['aktiv', 'abgeschlossen'];
+      allow delete: if false;
+
+      match /positionen/{positionId} {
+        allow read: if istTeam();
+        allow create: if istTeam()
+          && get(/databases/$(database)/documents/inventuren/$(inventurId)).data.status == 'aktiv'
+          && request.resource.data.erstelltVonUid == request.auth.uid
+          && zahlOk(request.resource.data.menge)
+          && zahlOk(request.resource.data.lagen)
+          && zahlOk(request.resource.data.stueckProLage)
+          && zahlOk(request.resource.data.fehlend)
+          && request.resource.data.konfidenz in ['hoch', 'mittel', 'niedrig', 'manuell']
+          && textOk(request.resource.data.lagerplatz, 40);
+        allow update: if istTeam()
+          && request.resource.data.erstelltVonUid == resource.data.erstelltVonUid
+          && zahlOk(request.resource.data.menge);
+        allow delete: if istTeam();
+      }
+    }
+  }
+}

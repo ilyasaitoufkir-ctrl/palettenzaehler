@@ -1,0 +1,32 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function istTeam() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+    function istBild() {
+      return request.resource.contentType == 'image/jpeg'
+        && request.resource.size < 3 * 1024 * 1024;
+    }
+
+    // Palettenfotos (bereits auf max. 1600 px verkleinert)
+    match /inventuren/{inventurId}/{positionId}/{datei} {
+      allow read: if istTeam();
+      allow write: if istTeam() && istBild();
+      allow delete: if istTeam();
+    }
+
+    // Referenzfotos im Artikelstamm
+    match /artikel/{artikelId}/{datei} {
+      allow read: if istTeam();
+      allow write: if istTeam() && istBild();
+      allow delete: if istTeam();
+    }
+
+    match /{allePfade=**} {
+      allow read, write: if false;
+    }
+  }
+}
