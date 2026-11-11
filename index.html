@@ -71,8 +71,28 @@
         color: #b95300;
         animation: sp-rise 0.6s 0.25s ease both;
       }
-      #splash .sp-name {
+      #splash .sp-firma {
         margin-top: -10px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        color: var(--sp-muted);
+        animation: sp-rise 0.6s 0.3s ease both;
+      }
+      #splash .sp-credit {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+        text-align: center;
+        font-size: 11px;
+        letter-spacing: 0.02em;
+        color: var(--sp-muted);
+        opacity: 0.75;
+        animation: sp-rise 0.6s 0.6s ease both;
+      }
+      #splash .sp-name {
+        margin-top: 0;
         font-size: 22px;
         font-weight: 650;
         letter-spacing: -0.02em;
@@ -139,9 +159,11 @@
     <div id="splash" role="status" aria-live="polite" aria-label="Palettenzähler wird geladen">
       <img class="sp-icon" src="/icons/icon-192.png" alt="" width="96" height="96" />
       <div class="sp-eyebrow">Lager Inventur</div>
+      <div class="sp-firma">FREY + LAU</div>
       <div class="sp-name">Palettenzähler</div>
       <div class="sp-bar"><div class="sp-fill"></div></div>
       <div class="sp-pct">0 %</div>
+      <div class="sp-credit">Created by Ilyas Ait</div>
     </div>
     <div id="root"></div>
     <script>
