@@ -97,7 +97,11 @@ export function createAnalyseHandler(deps: HandlerAbhaengigkeiten) {
         v = kiAntwortValidieren(antwort, stamm)
       }
       if (!v.ok) {
-        return json(502, { fehler: 'Die KI hat keine verwertbare Antwort geliefert. Bitte erneut versuchen oder manuell erfassen.' })
+        console.error('KI Antwort ungültig:', v.fehler, '| Antwort:', antwort.slice(0, 500))
+        return json(502, {
+          fehler: 'Die KI hat keine verwertbare Antwort geliefert. Bitte erneut versuchen oder manuell erfassen.',
+          grund: v.fehler.slice(0, 200),
+        })
       }
       return json(200, { ergebnis: v.ergebnis })
     } catch (e) {

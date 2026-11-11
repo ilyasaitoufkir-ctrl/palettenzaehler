@@ -49,7 +49,6 @@ export const KiErgebnisSchema = z
     konfidenz: z.enum(['hoch', 'mittel', 'niedrig']),
     hinweise: z.string().max(1200),
   })
-  .strict()
 export type KiErgebnisRoh = z.infer<typeof KiErgebnisSchema>
 
 /** Prüft die Magic Bytes, damit nur echte Bilder an die KI gehen */
@@ -83,7 +82,8 @@ WICHTIGE REGELN:
 - Unterscheide zwischen sichtbarer Menge und geschätzter Gesamtmenge.
 - Gib keine scheinbar exakten Zahlen aus, wenn die Bilder keine zuverlässige Zählung erlauben.
 
-Antworte ausschließlich mit einem JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne weiteren Text.`
+Antworte ausschließlich mit einem JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne weiteren Text.
+Auch wenn das Bild unscharf ist, keine Palette zeigt oder du nichts zählen kannst, antworte mit diesem JSON: dann lagen und stueck_pro_lage null, gesamt_geschaetzt 0, konfidenz "niedrig" und den Grund in hinweise.`
 
 const SCHEMA_TEXT = `{
   "artikel_match": "Artikelnummer aus dem Artikelstamm oder null",
@@ -120,6 +120,46 @@ export function jsonExtrahieren(text: string): unknown {
   return JSON.parse(ohneZaun.slice(start, ende + 1))
 }
 
+const KONFIDENZ_ALIAS: Record<string, 'hoch' | 'mittel' | 'niedrig'> = {
+  hoch: 'hoch', high: 'hoch', gut: 'hoch',
+  mittel: 'mittel', medium: 'mittel', mittelmäßig: 'mittel',
+  niedrig: 'niedrig', low: 'niedrig', gering: 'niedrig', unsicher: 'niedrig',
+}
+
+function zahl(v: unknown): unknown {
+  if (v === null || v === undefined || v === '') return null
+  if (typeof v === 'string') {
+    const n = Number(v.trim().replace(',', '.'))
+    return Number.isFinite(n) ? zahl(n) : v
+  }
+  if (typeof v === 'number' && Number.isFinite(v) && !Number.isInteger(v)) return Math.round(v)
+  return v
+}
+
+/**
+ * Bringt kleine Formabweichungen des Modells in das Schema (Zahl als Text, englische Konfidenz,
+ * fehlende Pflichtzahlen). Echte Unsinnswerte (negativ, Text statt Zahl) bleiben ungültig.
+ */
+export function kiAntwortNormalisieren(roh: unknown): unknown {
+  if (!roh || typeof roh !== 'object' || Array.isArray(roh)) return roh
+  const o = { ...(roh as Record<string, unknown>) }
+  for (const k of ['stueck_pro_lage', 'lagen', 'fehlende_stueck', 'gesamt_geschaetzt']) o[k] = zahl(o[k])
+  if (o.fehlende_stueck === null) o.fehlende_stueck = 0
+  if (o.gesamt_geschaetzt === null) {
+    const l = typeof o.lagen === 'number' ? o.lagen : null
+    const s = typeof o.stueck_pro_lage === 'number' ? o.stueck_pro_lage : null
+    const f = typeof o.fehlende_stueck === 'number' ? o.fehlende_stueck : 0
+    o.gesamt_geschaetzt = l !== null && s !== null ? Math.max(0, l * s - f) : 0
+  }
+  if (typeof o.konfidenz === 'string') o.konfidenz = KONFIDENZ_ALIAS[o.konfidenz.trim().toLowerCase()] ?? o.konfidenz
+  for (const k of ['beschreibung', 'gebindeart', 'hinweise']) if (o[k] === null || o[k] === undefined) o[k] = ''
+  for (const k of ['beschreibung', 'gebindeart', 'hinweise', 'etikett_text']) if (typeof o[k] === 'string') o[k] = (o[k] as string).slice(0, k === 'hinweise' ? 1200 : 600)
+  if (o.etikett_text === undefined || o.etikett_text === '') o.etikett_text = null
+  if (o.artikel_match === undefined || o.artikel_match === '') o.artikel_match = null
+  if (typeof o.artikel_match === 'number') o.artikel_match = String(o.artikel_match)
+  return o
+}
+
 export type ValidierungsErgebnis =
   | { ok: true; ergebnis: KiErgebnisRoh }
   | { ok: false; fehler: string }
@@ -135,7 +175,7 @@ export function kiAntwortValidieren(text: string, stammNummern: string[]): Valid
   } catch (e) {
     return { ok: false, fehler: `Ungültiges JSON: ${(e as Error).message}` }
   }
-  const p = KiErgebnisSchema.safeParse(roh)
+  const p = KiErgebnisSchema.safeParse(kiAntwortNormalisieren(roh))
   if (!p.success) {
     const details = p.error.issues.map((i) => `${i.path.join('.') || 'Objekt'}: ${i.message}`).join('; ')
     return { ok: false, fehler: `Schema verletzt: ${details}` }

@@ -62,10 +62,11 @@ export function createApiRecognizer(repo: DataRepo): RecognizePallet {
     } catch {
       throw new ErkennungsFehler('Server nicht erreichbar. Bitte erneut versuchen.')
     }
-    const antwort = (await res.json().catch(() => ({}))) as { ergebnis?: KiErgebnis; fehler?: string }
+    const antwort = (await res.json().catch(() => ({}))) as { ergebnis?: KiErgebnis; fehler?: string; grund?: string }
     if (!res.ok || !antwort.ergebnis) {
       const dauerhaft = [400, 401, 403, 413, 415].includes(res.status)
-      throw new ErkennungsFehler(antwort.fehler ?? `Analyse fehlgeschlagen (${res.status}).`, !dauerhaft)
+      const text = (antwort.fehler ?? `Analyse fehlgeschlagen (${res.status}).`) + (antwort.grund ? ` (Grund: ${antwort.grund})` : '')
+      throw new ErkennungsFehler(text, !dauerhaft)
     }
     return { ki: antwort.ergebnis, ...barcode }
   }

@@ -85,18 +85,52 @@ export function onQueue(fn: Hoerer): () => void {
   }
 }
 
+/**
+ * Safari auf dem iPhone kann Blobs aus IndexedDB teilweise nicht mehr lesen.
+ * Deshalb werden Fotos als ArrayBuffer abgelegt und beim Lesen wieder zu Blobs.
+ */
+interface GespeichertesBild {
+  typ: string
+  daten: ArrayBuffer
+}
+type GespeicherterEintrag = Omit<QueueEintrag, 'bilder'> & { bilder: (GespeichertesBild | Blob)[] }
+
+function blobBytes(b: Blob): Promise<ArrayBuffer> {
+  if (typeof b.arrayBuffer === 'function') return b.arrayBuffer()
+  return new Promise((ok, err) => {
+    const r = new FileReader()
+    r.onload = () => ok(r.result as ArrayBuffer)
+    r.onerror = () => err(r.error)
+    r.readAsArrayBuffer(b)
+  })
+}
+
+async function zuSpeicher(e: QueueEintrag): Promise<GespeicherterEintrag> {
+  const bilder = await Promise.all(e.bilder.map(async (b) => ({ typ: b.type || 'image/jpeg', daten: await blobBytes(b) })))
+  return { ...e, bilder }
+}
+
+function ausSpeicher(e: GespeicherterEintrag): QueueEintrag {
+  return {
+    ...e,
+    bilder: (e.bilder ?? []).map((b) => (b instanceof Blob ? b : new Blob([b.daten], { type: b.typ }))),
+  }
+}
+
 export async function queueAlle(): Promise<QueueEintrag[]> {
-  const liste = (await tx<QueueEintrag[]>('readonly', (s) => s.getAll() as IDBRequest<QueueEintrag[]>)) ?? []
-  return liste.sort((a, b) => b.erstelltAm - a.erstelltAm)
+  const liste = (await tx<GespeicherterEintrag[]>('readonly', (s) => s.getAll() as IDBRequest<GespeicherterEintrag[]>)) ?? []
+  return liste.map(ausSpeicher).sort((a, b) => b.erstelltAm - a.erstelltAm)
 }
 
 export async function queueHolen(id: string): Promise<QueueEintrag | null> {
-  return (await tx<QueueEintrag>('readonly', (s) => s.get(id) as IDBRequest<QueueEintrag>)) ?? null
+  const e = await tx<GespeicherterEintrag>('readonly', (s) => s.get(id) as IDBRequest<GespeicherterEintrag>)
+  return e ? ausSpeicher(e) : null
 }
 
 export async function queueSpeichern(e: QueueEintrag): Promise<void> {
+  const daten = await zuSpeicher({ ...e, aktualisiertAm: Date.now() })
   await tx('readwrite', (s) => {
-    s.put({ ...e, aktualisiertAm: Date.now() })
+    s.put(daten)
   })
   melden()
 }

@@ -38,15 +38,22 @@ describe('kiAntwortValidieren', () => {
     if (!r.ok) expect(r.fehler).toMatch(/konfidenz/)
   })
   it('lehnt falsche Datentypen ab', () => {
-    expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, lagen: '2' }), stamm).ok).toBe(false)
-    expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, lagen: 2.5 }), stamm).ok).toBe(false)
+    expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, lagen: 'viele' }), stamm).ok).toBe(false)
     expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, fehlende_stueck: -1 }), stamm).ok).toBe(false)
+    expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, beschreibung: 42 }), stamm).ok).toBe(false)
+  })
+  it('gleicht kleine Formabweichungen aus', () => {
+    const r = kiAntwortValidieren(JSON.stringify({ ...gueltig, lagen: '2', stueck_pro_lage: 12.4, konfidenz: 'High', fehlende_stueck: null, gesamt_geschaetzt: null, hinweise: null }), stamm)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.ergebnis).toMatchObject({ lagen: 2, stueck_pro_lage: 12, konfidenz: 'hoch', fehlende_stueck: 0, gesamt_geschaetzt: 24, hinweise: '' })
   })
   it('lehnt ungültige Konfidenz ab', () => {
     expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, konfidenz: 'sehr hoch' }), stamm).ok).toBe(false)
   })
-  it('lehnt zusätzliche unbekannte Felder ab', () => {
-    expect(kiAntwortValidieren(JSON.stringify({ ...gueltig, extra: 1 }), stamm).ok).toBe(false)
+  it('ignoriert zusätzliche unbekannte Felder', () => {
+    const r = kiAntwortValidieren(JSON.stringify({ ...gueltig, extra: 1 }), stamm)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect('extra' in r.ergebnis).toBe(false)
   })
   it('verwirft Artikelnummer, die nicht im Stamm ist, und senkt hohe Konfidenz', () => {
     const r = kiAntwortValidieren(JSON.stringify({ ...gueltig, artikel_match: 'X-99999' }), stamm)
