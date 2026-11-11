@@ -26,14 +26,13 @@ export function zeitstempelDe(ms: number): string {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-/** Barcode des Artikels, über Artikel ID oder Artikelnummer gefunden */
+/** Barcode des Artikels, über Artikel ID oder internen Schlüssel gefunden */
 export function barcodeFuer(p: Position, artikel: Artikel[]): string {
   const a = (p.artikelId && artikel.find((x) => x.id === p.artikelId)) || artikel.find((x) => p.artikelnummer && x.artikelnummer === p.artikelnummer)
   return a?.barcode ?? ''
 }
 
 export const INVENTUR_SPALTEN = [
-  'Artikelnummer',
   'Artikel Barcode',
   'Bezeichnung',
   'Gebindeart',
@@ -59,7 +58,6 @@ export function inventurCsv(positionen: Position[], artikel: Artikel[] = []): st
   return csvAusZeilen(
     INVENTUR_SPALTEN,
     sortiert.map((p) => [
-      p.artikelnummer,
       barcodeFuer(p, artikel),
       p.bezeichnung,
       p.gebindeart,
@@ -135,8 +133,8 @@ export function sollIstAbgleich(positionen: Position[], artikel: Artikel[]): Sol
 
 export function sollIstCsv(zeilen: SollIstZeile[]): string {
   return csvAusZeilen(
-    ['Artikelnummer', 'Bezeichnung', 'Gebinde', 'Soll', 'Ist', 'Differenz', 'Positionen', 'Davon niedrige Konfidenz'],
-    zeilen.map((z) => [z.artikelnummer, z.bezeichnung, z.gebindeart, z.soll ?? '', z.ist, z.differenz ?? '', z.positionen, z.niedrigeKonfidenz]),
+    ['Bezeichnung', 'Gebinde', 'Soll', 'Ist', 'Differenz', 'Positionen', 'Davon niedrige Konfidenz'],
+    zeilen.map((z) => [z.bezeichnung, z.gebindeart, z.soll ?? '', z.ist, z.differenz ?? '', z.positionen, z.niedrigeKonfidenz]),
   )
 }
 
@@ -217,8 +215,8 @@ export function artikelAusZeilen(roh: string[][]): ArtikelImportErgebnis {
   const fehler: string[] = []
   if (zeilen.length < 2) return { artikel: [], fehler: ['Die Datei enthält keine Datenzeilen.'] }
   const kopf = zeilen[0].map((k) => SPALTEN_ALIAS[normSpalte(k)])
-  if (!kopf.includes('artikelnummer') || !kopf.includes('bezeichnung')) {
-    return { artikel: [], fehler: ['Spalten "Artikelnummer" und "Bezeichnung" werden benötigt.'] }
+  if (!kopf.includes('bezeichnung')) {
+    return { artikel: [], fehler: ['Spalte "Bezeichnung" wird benötigt.'] }
   }
   const zahl = (s: string | undefined) => {
     if (!s || !s.trim()) return null
@@ -232,15 +230,17 @@ export function artikelAusZeilen(roh: string[][]): ArtikelImportErgebnis {
       const idx = kopf.indexOf(k as never)
       return idx >= 0 ? (z[idx] ?? '').trim() : ''
     }
-    const nr = get('artikelnummer')
     const bez = get('bezeichnung')
+    const barcode = get('barcode')
+    // interner Schlüssel: Barcode, sonst Bezeichnung. Er wird nie angezeigt.
+    const nr = barcode || bez
     const zeilenNr = i + 2
-    if (!nr || !bez) {
-      fehler.push(`Zeile ${zeilenNr}: Artikelnummer oder Bezeichnung fehlt`)
+    if (!bez) {
+      fehler.push(`Zeile ${zeilenNr}: Bezeichnung fehlt`)
       return
     }
     if (gesehen.has(nr)) {
-      fehler.push(`Zeile ${zeilenNr}: Artikelnummer ${nr} doppelt, übersprungen`)
+      fehler.push(`Zeile ${zeilenNr}: ${bez} doppelt, übersprungen`)
       return
     }
     const spl = zahl(get('stueckProLage'))

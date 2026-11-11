@@ -68,7 +68,7 @@ export function BestandPage() {
       <div className="card mb-4 flex flex-col gap-3 px-4 py-4">
         <p className="text-sm text-ink-2">
           Lade hier den Bestand aus eurem System als Excel oder CSV, zum Beispiel direkt aus OneDrive oder SharePoint. Benötigt wird die Spalte{' '}
-          <strong className="text-ink">Palettennummer</strong> (oder NVE, SSCC), dazu am besten Artikelnummer, Bezeichnung, Menge, Charge und Lagerplatz. Ein neuer
+          <strong className="text-ink">Palettennummer</strong> (oder NVE, SSCC), dazu am besten Bezeichnung, Menge, Charge und Lagerplatz. Ein neuer
           Import ersetzt die alte Liste.
         </p>
         <div className="grid grid-cols-2 gap-2">
@@ -117,7 +117,7 @@ export function BestandPage() {
                 <div className="min-w-0 flex-1">
                   <p className="tabular truncate font-semibold">{p.palettenNummer}</p>
                   <p className="truncate text-xs text-ink-2">
-                    {[p.artikelnummer, p.bezeichnung].filter(Boolean).join(' · ') || 'ohne Artikel'}
+                    {p.bezeichnung || 'ohne Artikel'}
                   </p>
                   <p className="truncate text-xs text-ink-3">
                     {[p.lagerplatz && `Platz ${p.lagerplatz}`, p.charge && `Ch. ${p.charge}`].filter(Boolean).join(' · ')}
@@ -138,7 +138,7 @@ export function BestandPage() {
             </p>
             {info.ohneArtikel > 0 && (
               <p className="rounded-[14px] bg-info-soft px-4 py-3 text-sm text-info">
-                {info.ohneArtikel} Paletten haben eine Artikelnummer, die nicht im Artikelstamm steht. Sie werden trotzdem erkannt, nur ohne Stück pro Lage aus dem Stamm.
+                {info.ohneArtikel} Paletten gehören zu einem Artikel, der nicht im Artikelstamm steht. Sie werden trotzdem erkannt, nur ohne Stück pro Lage aus dem Stamm.
               </p>
             )}
             {info.fehler.length > 0 && (

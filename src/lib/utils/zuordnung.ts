@@ -14,7 +14,7 @@ export interface Zuordnung {
 
 /**
  * Schlägt gelesene Nummern (Barcode Scan, KI Ablesung) in Bestandsliste und Artikelstamm nach.
- * Reihenfolge: Palette im Bestand, dann Artikel über Barcode, dann über Artikelnummer.
+ * Reihenfolge: Palette im Bestand, dann Artikel über Barcode, dann über den internen Schlüssel.
  */
 export function nachschlagen(nummern: string[], paletten: BestandsPalette[], artikel: Artikel[]): Zuordnung {
   const roh = nummern.filter(Boolean)
@@ -41,6 +41,6 @@ export function nachschlagen(nummern: string[], paletten: BestandsPalette[], art
   const perBarcode = artikel.find((a) => a.barcode && nummernVarianten(a.barcode).some((x) => varianten.has(x))) ?? null
   if (perBarcode) return { palette: null, artikel: perBarcode, grund: 'Artikel über Barcode erkannt', charge, palettenNummer: nveAusBarcode }
   const perNummer = artikel.find((a) => varianten.has(nummerNorm(a.artikelnummer))) ?? null
-  if (perNummer) return { palette: null, artikel: perNummer, grund: 'Artikel über Artikelnummer erkannt', charge, palettenNummer: nveAusBarcode }
+  if (perNummer) return { palette: null, artikel: perNummer, grund: 'Artikel im Stamm erkannt', charge, palettenNummer: nveAusBarcode }
   return { palette: null, artikel: null, grund: null, charge, palettenNummer: nveAusBarcode }
 }

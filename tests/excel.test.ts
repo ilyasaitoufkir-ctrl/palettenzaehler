@@ -21,21 +21,22 @@ describe('Excel Export', () => {
     const ws = wb.getWorksheet('Inventur')!
     expect(ws.getRow(1).getCell(1).value).toBe('Foto')
     expect(ws.getImages().length).toBe(2)
-    const summe = ws.getRow(4).getCell(12).value as { formula: string; result: number }
-    expect(summe.formula).toBe('SUM(L2:L3)')
+    const summe = ws.getRow(4).getCell(11).value as { formula: string; result: number }
+    expect(summe.formula).toBe('SUM(K2:K3)')
     expect(summe.result).toBe(44)
     const si = wb.getWorksheet('Soll-Ist')!
-    expect(si.getRow(2).getCell(5).value).toBe(44)
-    expect((si.getRow(2).getCell(6).value as { result: number }).result).toBe(-6)
+    expect(si.getRow(2).getCell(4).value).toBe(44)
+    expect((si.getRow(2).getCell(5).value as { result: number }).result).toBe(-6)
   })
   it('ohne Fotos keine Foto Spalte', async () => {
     const blob = await inventurExcel(inv, [pos({})], [art], { mitFotos: false })
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.load(await blob.arrayBuffer())
-    expect(wb.getWorksheet('Inventur')!.getRow(1).getCell(1).value).toBe('Artikelnummer')
+    expect(wb.getWorksheet('Inventur')!.getRow(1).getCell(1).value).toBe('Artikel Barcode')
   })
   it('Vorlage lässt sich wieder einlesen', async () => {
     const zeilen = await excelZeilen(await artikelVorlage())
-    expect(zeilen[0]).toContain('Artikelnummer')
+    expect(zeilen[0]).toContain('Bezeichnung')
+    expect(zeilen[0]).not.toContain('Artikelnummer')
   })
 })

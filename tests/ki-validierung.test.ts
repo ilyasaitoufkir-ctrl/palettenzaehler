@@ -55,13 +55,13 @@ describe('kiAntwortValidieren', () => {
     expect(r.ok).toBe(true)
     if (r.ok) expect('extra' in r.ergebnis).toBe(false)
   })
-  it('verwirft Artikelnummer, die nicht im Stamm ist, und senkt hohe Konfidenz', () => {
+  it('verwirft Artikel, der nicht im Stamm ist, und senkt hohe Konfidenz', () => {
     const r = kiAntwortValidieren(JSON.stringify({ ...gueltig, artikel_match: 'X-99999' }), stamm)
     expect(r.ok).toBe(true)
     if (r.ok) {
       expect(r.ergebnis.artikel_match).toBeNull()
       expect(r.ergebnis.konfidenz).toBe('mittel')
-      expect(r.ergebnis.hinweise).toMatch(/X-99999/)
+      expect(r.ergebnis.hinweise).toMatch(/nicht im Artikelstamm/)
     }
   })
   it('null Werte für unbekannte Lagen sind erlaubt', () => {

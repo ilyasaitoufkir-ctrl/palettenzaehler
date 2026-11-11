@@ -16,7 +16,7 @@ const SORT: Record<Sortierung, { text: string; fn: (a: Position, b: Position) =>
   alt: { text: 'Älteste zuerst', fn: (a, b) => a.erstelltAm - b.erstelltAm },
   menge: { text: 'Größte Menge', fn: (a, b) => b.menge - a.menge },
   platz: { text: 'Lagerplatz', fn: (a, b) => a.lagerplatz.localeCompare(b.lagerplatz, 'de', { numeric: true }) },
-  artikel: { text: 'Artikelnummer', fn: (a, b) => a.artikelnummer.localeCompare(b.artikelnummer, 'de', { numeric: true }) },
+  artikel: { text: 'Bezeichnung', fn: (a, b) => a.bezeichnung.localeCompare(b.bezeichnung, 'de', { numeric: true }) },
 }
 
 export function ListePage() {
@@ -35,7 +35,7 @@ export function ListePage() {
     return positionen
       .filter((p) => {
         if (filter === 'niedrig' && p.konfidenz !== 'niedrig') return false
-        if (filter === 'ohne' && p.artikelnummer) return false
+        if (filter === 'ohne' && p.artikelId) return false
         if (filter === 'manuell' && p.konfidenz !== 'manuell') return false
         if (filter === 'pruefen' && p.pruefStatus !== 'offen') return false
         if (!s) return true
@@ -47,7 +47,7 @@ export function ListePage() {
   const abgleich = useMemo(() => sollIstAbgleich(positionen, artikel), [positionen, artikel])
   const niedrig = positionen.filter((p) => p.konfidenz === 'niedrig').length
   const offenePruefung = positionen.filter((p) => p.pruefStatus === 'offen').length
-  const ohne = positionen.filter((p) => !p.artikelnummer).length
+  const ohne = positionen.filter((p) => !p.artikelId).length
 
   if (!aktiveInventur) {
     return (
@@ -133,7 +133,7 @@ export function ListePage() {
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{z.bezeichnung}</p>
                         <p className="truncate text-xs text-ink-2">
-                          {z.artikelnummer || 'ohne Nummer'} · {z.gebindeart} · {z.positionen} {z.positionen === 1 ? 'Palette' : 'Paletten'}
+                          {z.gebindeart || 'ohne Gebinde'} · {z.positionen} {z.positionen === 1 ? 'Palette' : 'Paletten'}
                         </p>
                       </div>
                       <div className={`tabular shrink-0 text-right text-lg font-bold ${ton}`}>
@@ -230,7 +230,7 @@ export function ListePage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold">{p.bezeichnung || 'Ohne Artikel'}</p>
                         <p className="truncate text-xs text-ink-2">
-                          {p.artikelnummer || 'keine Nr.'} · {p.gebindeart || 'Gebinde ?'}
+                          {p.gebindeart || 'Gebinde ?'}
                           {p.palettenNummer ? ` · Pal. ${p.palettenNummer}` : ''}
                           {p.charge ? ` · Ch. ${p.charge}` : ''}
                         </p>

@@ -7,6 +7,10 @@ import { artikelAusCsv, artikelAusZeilen } from '../../lib/utils/csv'
 import { dateiAusgeben } from '../../lib/utils/download'
 import { StammdatenTabs } from './StammdatenTabs'
 import { bildOptimieren } from '../../lib/utils/bild'
+import { neueId } from '../../lib/utils/id'
+
+/** Interner Schlüssel für einen Artikel. Er wird nie angezeigt. */
+const schluessel = (vorhanden: string) => vorhanden || 'ART-' + neueId()
 
 const GEBINDE = ['Kanister', 'Karton', 'Fass', 'IBC', 'Eimer', 'Sack', 'Sonstiges']
 
@@ -68,17 +72,15 @@ export function ArtikelPage() {
   const speichern = async (e: FormEvent) => {
     e.preventDefault()
     if (!form) return
-    const nr = form.d.artikelnummer.trim()
     const bez = form.d.bezeichnung.trim()
-    if (!nr || !bez) return toast('Artikelnummer und Bezeichnung sind Pflicht.', 'fehler')
-    if (artikel.some((a) => a.artikelnummer === nr && a.id !== form.id)) return toast(`Artikelnummer ${nr} gibt es schon.`, 'fehler')
+    if (!bez) return toast('Bitte eine Bezeichnung eingeben.', 'fehler')
     const spl = zahlOderNull(zahlen.spl)
     const lpp = zahlOderNull(zahlen.lpp)
     const soll = zahlOderNull(zahlen.soll)
     if ([spl, lpp, soll].some((v) => Number.isNaN(v))) return toast('Zahlen bitte als ganze Zahlen ab 0 eingeben.', 'fehler')
     await repo.artikelSpeichern(form.id, {
       ...form.d,
-      artikelnummer: nr,
+      artikelnummer: schluessel(form.d.artikelnummer),
       bezeichnung: bez,
       gebindegroesse: form.d.gebindegroesse.trim(),
       barcode: form.d.barcode?.trim() || null,
@@ -97,11 +99,11 @@ export function ArtikelPage() {
       // Artikel zuerst speichern, damit es eine ID gibt
       let id = form.id
       if (!id) {
-        if (!form.d.artikelnummer.trim() || !form.d.bezeichnung.trim()) {
-          toast('Bitte zuerst Artikelnummer und Bezeichnung eintragen.', 'fehler')
+        if (!form.d.bezeichnung.trim()) {
+          toast('Bitte zuerst eine Bezeichnung eintragen.', 'fehler')
           return
         }
-        id = await repo.artikelSpeichern(null, { ...form.d, artikelnummer: form.d.artikelnummer.trim(), bezeichnung: form.d.bezeichnung.trim() })
+        id = await repo.artikelSpeichern(null, { ...form.d, artikelnummer: schluessel(form.d.artikelnummer), bezeichnung: form.d.bezeichnung.trim() })
       }
       const blob = await bildOptimieren(datei, 1000, 0.8)
       const url = await repo.referenzfotoHochladen(id, blob)
@@ -198,7 +200,7 @@ export function ArtikelPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{a.bezeichnung}</p>
                   <p className="truncate text-xs text-ink-2">
-                    {a.artikelnummer} · {[a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ')}
+                    {[a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ') || 'ohne Gebinde'}
                     {a.stueckProLage ? ` · ${a.stueckProLage} je Lage` : ''}
                   </p>
                 </div>
@@ -218,13 +220,7 @@ export function ArtikelPage() {
       <Sheet offen={!!form} onClose={() => setForm(null)} titel={form?.id ? 'Artikel bearbeiten' : 'Neuer Artikel'}>
         {form && (
           <form onSubmit={speichern} className="flex flex-col gap-4">
-            <div className="grid grid-cols-[2fr_3fr] gap-3">
-              <div className="min-w-0">
-                <label className="label" htmlFor="a-nr">
-                  Artikelnummer
-                </label>
-                <input id="a-nr" className="field" value={form.d.artikelnummer} maxLength={64} onChange={(e) => setForm({ ...form, d: { ...form.d, artikelnummer: e.target.value } })} />
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               <div className="min-w-0">
                 <label className="label" htmlFor="a-bez">
                   Bezeichnung
@@ -313,7 +309,7 @@ export function ArtikelPage() {
       <Bestaetigen
         offen={!!loeschen}
         titel="Artikel löschen?"
-        text={`${loeschen?.artikelnummer} ${loeschen?.bezeichnung} wird aus dem Artikelstamm entfernt. Bereits erfasste Positionen bleiben erhalten.`}
+        text={`${loeschen?.bezeichnung} wird aus dem Artikelstamm entfernt. Bereits erfasste Positionen bleiben erhalten.`}
         ja="Löschen"
         gefaehrlich
         onNein={() => setLoeschen(null)}

@@ -182,7 +182,7 @@ export function PositionForm({
               <>
                 <p className="truncate font-semibold">{gewaehlt.bezeichnung}</p>
                 <p className="truncate text-xs text-ink-2">
-                  {gewaehlt.artikelnummer} · {[gewaehlt.gebindeart, gewaehlt.gebindegroesse].filter(Boolean).join(' ')}
+                  {[gewaehlt.gebindeart, gewaehlt.gebindegroesse].filter(Boolean).join(' ')}
                 </p>
               </>
             ) : (
@@ -335,7 +335,7 @@ export function PositionForm({
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{a.bezeichnung}</p>
                   <p className="truncate text-xs text-ink-2">
-                    {a.artikelnummer} · {[a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ')}
+                    {[a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ')}
                   </p>
                 </div>
                 {a.id === artikelId && <span className="text-xs font-semibold text-accent">gewählt</span>}

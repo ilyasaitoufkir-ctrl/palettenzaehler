@@ -64,7 +64,6 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
   const fotoSpalte = opt.mitFotos
   ws.columns = [
     ...(fotoSpalte ? [{ header: 'Foto', key: 'foto', width: 16 }] : []),
-    { header: 'Artikelnummer', key: 'nr', width: 16 },
     { header: 'Artikel Barcode', key: 'barcode', width: 18 },
     { header: 'Bezeichnung', key: 'bez', width: 30 },
     { header: 'Gebinde', key: 'gebinde', width: 16 },
@@ -92,7 +91,6 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
   const sortiert = [...positionen].sort((a, b) => a.erstelltAm - b.erstelltAm)
   for (const p of sortiert) {
     const z = ws.addRow({
-      nr: p.artikelnummer,
       barcode: barcodeFuer(p, artikel),
       bez: p.bezeichnung,
       gebinde: p.gebindeart,
@@ -142,7 +140,6 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
   // ── Blatt 2: Soll-Ist ─────────────────────────────────────────────
   const si = wb.addWorksheet('Soll-Ist', { views: [{ state: 'frozen', ySplit: 1 }] })
   si.columns = [
-    { header: 'Artikelnummer', key: 'nr', width: 16 },
     { header: 'Bezeichnung', key: 'bez', width: 30 },
     { header: 'Gebinde', key: 'gebinde', width: 18 },
     { header: 'Soll', key: 'soll', width: 10 },
@@ -153,9 +150,9 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
   ]
   kopfStil(si.getRow(1))
   for (const z of sollIstAbgleich(positionen, artikel)) {
-    const r = si.addRow({ nr: z.artikelnummer, bez: z.bezeichnung, gebinde: z.gebindeart, soll: z.soll ?? '', ist: z.ist, pal: z.positionen, nz: z.niedrigeKonfidenz })
+    const r = si.addRow({ bez: z.bezeichnung, gebinde: z.gebindeart, soll: z.soll ?? '', ist: z.ist, pal: z.positionen, nz: z.niedrigeKonfidenz })
     if (z.soll !== null) {
-      r.getCell('diff').value = { formula: `E${r.number}-D${r.number}`, result: z.differenz ?? 0 }
+      r.getCell('diff').value = { formula: `D${r.number}-C${r.number}`, result: z.differenz ?? 0 }
       r.getCell('diff').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: z.differenz === 0 ? GRUEN_HELL : ROT_HELL } }
     }
     r.getCell('diff').font = { bold: true }
@@ -168,7 +165,6 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
     { header: 'Aktion', key: 'aktion', width: 14 },
     { header: 'Nutzer', key: 'nutzer', width: 24 },
     { header: 'Palettennummer', key: 'palette', width: 20 },
-    { header: 'Artikelnummer', key: 'nr', width: 16 },
     { header: 'Lagerplatz', key: 'platz', width: 12 },
     { header: 'Details', key: 'details', width: 70 },
   ]
@@ -177,7 +173,7 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
     .flatMap((p) => (p.protokoll ?? []).map((e) => ({ e, p })))
     .sort((a, b) => a.e.zeit - b.e.zeit)
   for (const { e, p } of ereignisse) {
-    const z = pr.addRow({ zeit: new Date(e.zeit), aktion: AKTION_TEXT[e.aktion], nutzer: e.nutzer, palette: p.palettenNummer, nr: p.artikelnummer, platz: p.lagerplatz, details: e.details })
+    const z = pr.addRow({ zeit: new Date(e.zeit), aktion: AKTION_TEXT[e.aktion], nutzer: e.nutzer, palette: p.palettenNummer, platz: p.lagerplatz, details: e.details })
     z.getCell('zeit').numFmt = 'dd.mm.yyyy hh:mm'
     z.alignment = { vertical: 'middle', wrapText: true }
   }
@@ -244,7 +240,6 @@ export async function artikelVorlage(): Promise<Blob> {
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Artikel')
   ws.columns = [
-    { header: 'Artikelnummer', width: 16 },
     { header: 'Bezeichnung', width: 32 },
     { header: 'Gebindeart', width: 14 },
     { header: 'Gebindegröße', width: 14 },
@@ -268,7 +263,6 @@ export async function bestandVorlage(): Promise<Blob> {
   const ws = wb.addWorksheet('Bestand')
   ws.columns = [
     { header: 'Palettennummer', width: 22 },
-    { header: 'Artikelnummer', width: 16 },
     { header: 'Bezeichnung', width: 30 },
     { header: 'Menge', width: 10 },
     { header: 'Charge', width: 14 },

@@ -33,8 +33,8 @@ describe('CSV Export', () => {
   it('beginnt mit UTF-8 BOM und nutzt Semikolon', () => {
     const csv = inventurCsv([pos({})])
     expect(csv.startsWith(CSV_BOM)).toBe(true)
-    expect(csv.slice(1).split('\r\n')[0]).toBe('Artikelnummer;Artikel Barcode;Bezeichnung;Gebindeart;Lagen;Stück pro Lage;Fehlend;Menge;Soll Bestand;Differenz;Lagerplatz;Lagerplatz laut Bestand;Palettennummer;Charge;Konfidenz;Prüfung;Zeitstempel;Erfasst von;Nachgezählt von')
-    expect(csv).toContain('A-1;;Öl;Kanister 5 l;1;1;0;1;;;A1;;;;hoch;nicht nötig;11.11.2026 09:05;a@b.de;')
+    expect(csv.slice(1).split('\r\n')[0]).toBe('Artikel Barcode;Bezeichnung;Gebindeart;Lagen;Stück pro Lage;Fehlend;Menge;Soll Bestand;Differenz;Lagerplatz;Lagerplatz laut Bestand;Palettennummer;Charge;Konfidenz;Prüfung;Zeitstempel;Erfasst von;Nachgezählt von')
+    expect(csv).toContain(';Öl;Kanister 5 l;1;1;0;1;;;A1;;;;hoch;nicht nötig;11.11.2026 09:05;a@b.de;')
   })
   it('erhält Umlaute', () => {
     expect(inventurCsv([pos({ bezeichnung: 'Pfefferminzöl Größe ß' })])).toContain('Pfefferminzöl Größe ß')
@@ -47,7 +47,7 @@ describe('CSV Export', () => {
     expect(csv).toContain('"Aroma; ""Spezial""\nneu"')
     // Rundreise: der Parser liest es identisch zurück
     const zeilen = parseCsv(csv)
-    expect(zeilen[1][2]).toBe('Aroma; "Spezial"\nneu')
+    expect(zeilen[1][1]).toBe('Aroma; "Spezial"\nneu')
   })
   it('verhindert Formel Injection, lässt negative Zahlen in Ruhe', () => {
     expect(csvFeld('=SUMME(A1)')).toBe("'=SUMME(A1)")
@@ -89,14 +89,14 @@ describe('Artikel CSV Import', () => {
     const r = artikelAusCsv('﻿Artikelnummer;Bezeichnung;Gebindeart;Gebindegröße;Stück pro Lage;Sollbestand\nA-1;Orangenöl;Kanister;5 l;40;240\nA-2;"Vanille; natürlich";Kanister;10 l;;')
     expect(r.fehler).toEqual([])
     expect(r.artikel).toHaveLength(2)
-    expect(r.artikel[0]).toMatchObject({ artikelnummer: 'A-1', stueckProLage: 40, sollbestand: 240, gebindegroesse: '5 l' })
+    expect(r.artikel[0]).toMatchObject({ bezeichnung: 'Orangenöl', stueckProLage: 40, sollbestand: 240, gebindegroesse: '5 l' })
     expect(r.artikel[1]).toMatchObject({ bezeichnung: 'Vanille; natürlich', stueckProLage: null })
   })
   it('meldet fehlende Pflichtspalten, Dubletten und ungültige Zahlen', () => {
-    expect(artikelAusCsv('Name;Menge\nx;1').fehler[0]).toMatch(/Artikelnummer/)
-    const r = artikelAusCsv('Artikelnummer,Bezeichnung,Soll\nA,Eins,5\nA,Doppelt,3\nB,Zwei,-4\n,Leer,1')
-    expect(r.artikel).toHaveLength(1)
-    expect(r.fehler).toHaveLength(3)
+    expect(artikelAusCsv('Menge;Preis\n1;2\n3;4').fehler[0]).toMatch(/Bezeichnung/)
+    const r = artikelAusCsv('Barcode;Bezeichnung;Sollbestand\n4012;Eins;5\n4012;Doppelt;3\n4013;Zwei;-4\n;Leer;1')
+    expect(r.artikel.map((x) => x.bezeichnung)).toEqual(['Eins', 'Leer'])
+    expect(r.fehler).toHaveLength(2)
   })
 })
 
@@ -104,11 +104,11 @@ describe('Artikel aus Excel Zeilen', () => {
   it('nutzt dieselbe Logik wie der CSV Import', async () => {
     const { artikelAusZeilen } = await import('../src/lib/utils/csv')
     const r = artikelAusZeilen([
-      ['Artikelnummer', 'Bezeichnung', 'Stück pro Lage', 'Lagen pro Palette', 'Sollbestand'],
-      ['10025', 'Zitronenaroma', '12', '2', '96'],
+      ['Bezeichnung', 'Stück pro Lage', 'Lagen pro Palette', 'Sollbestand'],
+      ['Zitronenaroma', '12', '2', '96'],
       ['', '', '', '', ''],
     ])
     expect(r.fehler).toEqual([])
-    expect(r.artikel[0]).toMatchObject({ artikelnummer: '10025', stueckProLage: 12, lagenProPalette: 2, sollbestand: 96 })
+    expect(r.artikel[0]).toMatchObject({ bezeichnung: 'Zitronenaroma', stueckProLage: 12, lagenProPalette: 2, sollbestand: 96 })
   })
 })

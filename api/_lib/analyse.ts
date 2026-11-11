@@ -80,7 +80,7 @@ WICHTIGE REGELN:
 - Berücksichtige angebrochene oder unvollständige Paletten.
 - Erkenne, wenn Gebinde durch Folie, andere Paletten oder Perspektive verdeckt sind.
 - Benenne verdeckte Bereiche ausdrücklich.
-- Erfinde keine Artikelnummern.
+- Erfinde keine Artikel.
 - Ordne Artikel nur dann zu, wenn eine nachvollziehbare Übereinstimmung mit dem Artikelstamm besteht.
 - Wenn kein Gebinde zuverlässig erkennbar ist, rate nicht.
 - Setze die Konfidenz auf niedrig, wenn wesentliche Informationen unsicher sind.
@@ -88,14 +88,14 @@ WICHTIGE REGELN:
 - Lies Etiketten genau: Produktname (z. B. "Chlor flüssig") gehört in produkt, kurz und so wie auf dem Etikett.
 - Lies Palettennummern (Palettenschein, NVE/SSCC, Lagerplatz Etikett) und Ziffern unter Barcodes oder QR Codes Zeichen für Zeichen ab. Nur übernehmen, was eindeutig lesbar ist, nichts ergänzen oder raten.
 - Chargen oder Losnummern (Charge, Lot, LOT, Ch.-B.) gehören in charge.
-- Wenn eine gelesene Barcode Nummer oder Artikelnummer im Artikelstamm vorkommt, setze artikel_match auf diese Artikelnummer.
+- Wenn eine gelesene Barcode Nummer oder ein Artikel im Stamm erkennbar ist, setze artikel_match auf den Stammschlüssel.
 - Gib keine scheinbar exakten Zahlen aus, wenn die Bilder keine zuverlässige Zählung erlauben.
 
 Antworte ausschließlich mit einem JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne weiteren Text.
 Auch wenn das Bild unscharf ist, keine Palette zeigt oder du nichts zählen kannst, antworte mit diesem JSON: dann lagen und stueck_pro_lage null, gesamt_geschaetzt 0, konfidenz "niedrig" und den Grund in hinweise.`
 
 const SCHEMA_TEXT = `{
-  "artikel_match": "Artikelnummer aus dem Artikelstamm oder null",
+  "artikel_match": "Stammschlüssel aus dem Artikelstamm oder null",
   "beschreibung": "kurze Beschreibung dessen, was auf der Palette steht",
   "gebindeart": "z. B. Kanister 25 l, Karton, Fass, IBC",
   "etikett_text": "weiterer gelesener Etikettentext oder null",
@@ -117,7 +117,7 @@ export function nutzerText(artikel: AnalyseAnfrage['artikel']): string {
     : '(kein Artikelstamm hinterlegt, artikel_match muss null sein)'
   return `Analysiere die Palette auf den Bildern (Front, Seite und/oder Draufsicht derselben Palette).
 
-ARTIKELSTAMM (Artikelnummer | Bezeichnung | Gebinde | Stück pro Lage | Barcode):
+ARTIKELSTAMM (Stammschlüssel | Bezeichnung | Gebinde | Stück pro Lage | Barcode):
 ${stamm}
 
 Antworte nur mit JSON nach diesem Schema:
@@ -216,7 +216,7 @@ export function kiAntwortValidieren(text: string, stammRoh: (string | StammEintr
   if (e.artikel_match !== null) {
     const nr = e.artikel_match.trim()
     if (!nummern.includes(nr)) {
-      hinweis(`Die genannte Artikelnummer "${nr}" ist nicht im Artikelstamm und wurde verworfen.`)
+      hinweis(`Der genannte Artikel ist nicht im Artikelstamm und wurde verworfen.`)
       e.artikel_match = null
       if (e.konfidenz === 'hoch') e.konfidenz = 'mittel'
     } else e.artikel_match = nr

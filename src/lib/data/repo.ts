@@ -28,7 +28,7 @@ export interface DataRepo {
   onArtikel(cb: (liste: Artikel[]) => void, fehler?: (e: Error) => void): Abmelden
   artikelSpeichern(id: string | null, eingabe: ArtikelEingabe): Promise<string>
   artikelLoeschen(id: string): Promise<void>
-  /** Legt neue Artikel an oder aktualisiert bestehende (Schlüssel: Artikelnummer) */
+  /** Legt neue Artikel an oder aktualisiert bestehende (Schlüssel: Barcode oder Bezeichnung) */
   artikelImportieren(liste: ArtikelEingabe[], bestand: Artikel[]): Promise<{ neu: number; aktualisiert: number }>
   referenzfotoHochladen(artikelId: string, bild: Blob): Promise<string>
 

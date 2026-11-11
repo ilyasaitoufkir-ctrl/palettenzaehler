@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { neueId } from '../../lib/utils/id'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertCircle, CheckCircle2, ClipboardEdit, RefreshCw, WifiOff } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
@@ -85,14 +86,6 @@ export function BestaetigenPage() {
     )
   }
 
-  /** einfache fortlaufende Nummer für neu angelegte Artikel, z. B. NEU-001 */
-  const freieArtikelnummer = async () => {
-    let i = artikel.length + 1
-    const belegt = new Set(artikel.map((a) => a.artikelnummer))
-    while (belegt.has(`NEU-${String(i).padStart(3, '0')}`)) i++
-    return `NEU-${String(i).padStart(3, '0')}`
-  }
-
   const bestaetigen = async (basis: PositionBasis) => {
     try {
       await positionBestaetigen(repo, eintrag.id, erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt'))
@@ -119,7 +112,7 @@ export function BestaetigenPage() {
           submitText="Position bestätigen"
           onSubmit={bestaetigen}
           onNeuerArtikel={async (v) => {
-            const nr = await freieArtikelnummer()
+            const nr = 'ART-' + neueId()
             const id = await repo.artikelSpeichern(null, {
               artikelnummer: nr,
               bezeichnung: v.bezeichnung,
@@ -130,7 +123,7 @@ export function BestaetigenPage() {
               barcode: v.barcode,
               sollbestand: null,
             })
-            toast(`Artikel ${nr} angelegt. Nummer kannst du im Artikelstamm ändern.`)
+            toast('Artikel angelegt.')
             return id
           }}
         />
