@@ -14,9 +14,172 @@
     <link rel="icon" type="image/png" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Palettenzähler</title>
+    <style>
+      :root {
+        --sp-bg: #faf8f6;
+        --sp-fg: #1d1a18;
+        --sp-muted: #7a716b;
+        --sp-track: rgba(29, 26, 24, 0.09);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --sp-bg: #141110;
+          --sp-fg: #f4efea;
+          --sp-muted: #9b928b;
+          --sp-track: rgba(244, 239, 234, 0.12);
+        }
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--sp-bg);
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background:
+          radial-gradient(120% 70% at 50% 0%, rgba(239, 125, 0, 0.16), transparent 60%),
+          var(--sp-bg);
+        color: var(--sp-fg);
+        font-family: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
+          max(16px, env(safe-area-inset-left, 0px));
+        transition: opacity 0.55s ease, visibility 0.55s ease;
+      }
+      #splash.weg {
+        opacity: 0;
+        visibility: hidden;
+      }
+      #splash .sp-icon {
+        width: 96px;
+        height: 96px;
+        border-radius: 24px;
+        box-shadow: 0 18px 40px -12px rgba(239, 125, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.12);
+        animation: sp-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      #splash .sp-eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #b95300;
+        animation: sp-rise 0.6s 0.25s ease both;
+      }
+      #splash .sp-name {
+        margin-top: -10px;
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        animation: sp-rise 0.6s 0.35s ease both;
+      }
+      #splash .sp-bar {
+        width: min(230px, 60vw);
+        height: 5px;
+        margin-top: 14px;
+        border-radius: 99px;
+        background: var(--sp-track);
+        overflow: hidden;
+        animation: sp-rise 0.6s 0.45s ease both;
+      }
+      #splash .sp-fill {
+        height: 100%;
+        width: 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #ff9a2e, #ef7d00 60%, #e46f00);
+        box-shadow: 0 0 14px rgba(239, 125, 0, 0.55);
+      }
+      #splash .sp-pct {
+        font-size: 13px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--sp-muted);
+        animation: sp-rise 0.6s 0.5s ease both;
+      }
+      @keyframes sp-pop {
+        0% {
+          transform: scale(0.3);
+          opacity: 0;
+        }
+        60% {
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes sp-rise {
+        from {
+          transform: translateY(10px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash .sp-icon,
+        #splash .sp-eyebrow,
+        #splash .sp-name,
+        #splash .sp-bar,
+        #splash .sp-pct {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" role="status" aria-live="polite" aria-label="Palettenzähler wird geladen">
+      <img class="sp-icon" src="/icons/icon-192.png" alt="" width="96" height="96" />
+      <div class="sp-eyebrow">Lager Inventur</div>
+      <div class="sp-name">Palettenzähler</div>
+      <div class="sp-bar"><div class="sp-fill"></div></div>
+      <div class="sp-pct">0 %</div>
+    </div>
     <div id="root"></div>
+    <script>
+      (function () {
+        var el = document.getElementById('splash');
+        if (!el) return;
+        var fill = el.querySelector('.sp-fill');
+        var pct = el.querySelector('.sp-pct');
+        var reduziert = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var dauer = reduziert ? 700 : 3600;
+        var start = null;
+        var beendet = false;
+        function weg() {
+          if (beendet) return;
+          beendet = true;
+          el.classList.add('weg');
+          setTimeout(function () {
+            el.remove();
+          }, 600);
+        }
+        function tick(t) {
+          if (start === null) start = t;
+          var p = Math.min(1, (t - start) / dauer);
+          var e = 1 - Math.pow(1 - p, 3);
+          var v = Math.round(e * 100);
+          fill.style.width = v + '%';
+          pct.textContent = v + ' %';
+          if (p < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            setTimeout(weg, 250);
+          }
+        }
+        requestAnimationFrame(tick);
+        // Sicherheitsnetz: der Startbildschirm verschwindet spätestens nach 6 Sekunden
+        setTimeout(weg, 6000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
