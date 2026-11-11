@@ -1,4 +1,4 @@
-import type { Artikel, ArtikelEingabe, Inventur, InventurEingabe, Nutzer, Position, PositionEingabe } from '../../types'
+import type { Artikel, ArtikelEingabe, BestandsMeta, BestandsPalette, Inventur, InventurEingabe, Nutzer, Position, PositionEingabe } from '../../types'
 
 export type AuthZustand =
   | { status: 'laden' }
@@ -31,6 +31,11 @@ export interface DataRepo {
   /** Legt neue Artikel an oder aktualisiert bestehende (Schlüssel: Artikelnummer) */
   artikelImportieren(liste: ArtikelEingabe[], bestand: Artikel[]): Promise<{ neu: number; aktualisiert: number }>
   referenzfotoHochladen(artikelId: string, bild: Blob): Promise<string>
+
+  /** Bestandsliste (Export aus dem ERP): Palettennummer mit Artikel, Menge, Charge, Lagerplatz */
+  onBestand(cb: (liste: BestandsPalette[], meta: BestandsMeta | null) => void, fehler?: (e: Error) => void): Abmelden
+  /** ersetzt die komplette Bestandsliste durch einen neuen Import */
+  bestandErsetzen(liste: BestandsPalette[], quelle: string): Promise<void>
 
   onPositionen(inventurId: string, cb: (liste: Position[]) => void, fehler?: (e: Error) => void): Abmelden
   /**

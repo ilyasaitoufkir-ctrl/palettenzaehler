@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Boxes, Camera, ClipboardList, LayoutGrid, LogOut, Monitor, Moon, Package, Sun, WifiOff } from 'lucide-react'
 import { useApp } from './AppContext'
 import { useTheme } from '../hooks/useTheme'
@@ -15,6 +15,7 @@ export function Layout() {
   const { repo, online, nutzer, aktiveInventur, warteschlange } = useApp()
   const { thema, weiter } = useTheme()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const offen = warteschlange.filter((w) => w.status === 'bereit').length
   const ThemaIcon = thema === 'dark' ? Moon : thema === 'light' ? Sun : Monitor
 
@@ -76,14 +77,16 @@ export function Layout() {
               key={n.to}
               to={n.to}
               end={n.end}
-              className={({ isActive }) =>
-                `relative flex min-h-[64px] flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold ${
+              className={({ isActive: aktiv }) => {
+                const isActive = aktiv || (n.to === '/artikel' && pathname === '/bestand')
+                return `relative flex min-h-[64px] flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold ${
                   isActive ? 'text-accent' : 'text-ink-3'
                 }`
-              }
+              }}
             >
-              {({ isActive }) =>
-                n.haupt ? (
+              {({ isActive: aktiv }) => {
+                const isActive = aktiv || (n.to === '/artikel' && pathname === '/bestand')
+                return n.haupt ? (
                   <>
                     <span className="-mt-6 grid size-[60px] place-items-center rounded-full bg-brand text-accent-ink shadow-lg ring-4 ring-bg">
                       <n.icon className="size-7" />
@@ -99,7 +102,7 @@ export function Layout() {
                     {n.label}
                   </>
                 )
-              }
+              }}
             </NavLink>
           ))}
         </div>

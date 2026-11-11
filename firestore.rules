@@ -30,6 +30,14 @@ service cloud.firestore {
         && textOk(request.resource.data.bezeichnung, 160);
     }
 
+    // Bestandsliste aus dem ERP (Import), Schlüssel ist die normalisierte Palettennummer
+    match /bestand/{palettenId} {
+      allow read, write: if istTeam();
+    }
+    match /einstellungen/{docId} {
+      allow read, write: if istTeam();
+    }
+
     match /inventuren/{inventurId} {
       allow read: if istTeam();
       allow create: if istTeam()

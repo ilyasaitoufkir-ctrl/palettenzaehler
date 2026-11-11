@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Camera, ChevronRight, ClipboardEdit, Images, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
+import { Barcode, Camera, ChevronRight, ClipboardEdit, Images, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
+import { BarcodeScanner } from './BarcodeScanner'
+import { barcodesAusBildern, liveScanMoeglich } from '../../lib/utils/barcode'
+import { PLATTFORM } from '../../lib/config'
 import { useApp } from '../../app/AppContext'
 import { Bestaetigen, Leer, Seitenkopf, Spinner } from '../../components/ui'
 import { BildFehler, bildOptimieren } from '../../lib/utils/bild'
@@ -61,6 +64,27 @@ export function ErfassenPage() {
   const [loeschen, setLoeschen] = useState<QueueEintrag | null>(null)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const mehrereRef = useRef<HTMLInputElement>(null)
+  const scanFotoRef = useRef<HTMLInputElement>(null)
+  const [scannerOffen, setScannerOffen] = useState(false)
+  const [scanLaeuft, setScanLaeuft] = useState(false)
+  const live = PLATTFORM !== 'artifact' && liveScanMoeglich()
+
+  const gescannt = (werte: string[]) => {
+    setScannerOffen(false)
+    navigate('/manuell', { state: { scan: werte } })
+  }
+  const scanAusFoto = async (datei: File | undefined) => {
+    if (!datei) return
+    setScanLaeuft(true)
+    try {
+      const werte = await barcodesAusBildern([datei])
+      if (werte.length) gescannt(werte)
+      else toast('Auf dem Foto wurde kein Barcode gefunden. Näher ran und scharf stellen.', 'fehler')
+    } finally {
+      setScanLaeuft(false)
+      if (scanFotoRef.current) scanFotoRef.current.value = ''
+    }
+  }
 
   useEffect(
     () => () => {
@@ -176,6 +200,24 @@ export function ErfassenPage() {
         }
       />
 
+      <button
+        className="card mb-5 flex w-full items-center gap-3 px-4 py-4 text-left"
+        onClick={() => (live ? setScannerOffen(true) : scanFotoRef.current?.click())}
+        disabled={scanLaeuft}
+      >
+        <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-accent-ink">
+          {scanLaeuft ? <Spinner /> : <Barcode className="size-6" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Barcode scannen</p>
+          <p className="text-sm text-ink-2">Palettenetikett oder Artikel Barcode, holt die Daten aus dem Bestand</p>
+        </div>
+        <ChevronRight className="size-5 text-ink-3" />
+      </button>
+      <input ref={scanFotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => scanAusFoto(e.target.files?.[0])} />
+      {scannerOffen && <BarcodeScanner onTreffer={gescannt} onClose={() => setScannerOffen(false)} />}
+
+      <p className="eyebrow mb-2">Oder per Foto zählen lassen</p>
       <div className="grid grid-cols-3 gap-3">
         {SLOTS.map((name, i) => {
           const f = fotos[i]

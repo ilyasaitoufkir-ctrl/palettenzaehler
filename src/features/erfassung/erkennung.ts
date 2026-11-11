@@ -1,6 +1,8 @@
 import type { Artikel, ErkennungsErgebnis, KiErgebnis } from '../../types'
 import type { DataRepo } from '../../lib/data'
-import { barcodesLesen, blobZuBase64 } from '../../lib/utils/bild'
+import { blobZuBase64 } from '../../lib/utils/bild'
+import { barcodesAusBildern } from '../../lib/utils/barcode'
+import { nachschlagen } from '../../lib/utils/zuordnung'
 
 export class ErkennungsFehler extends Error {
   constructor(
@@ -18,17 +20,9 @@ export class ErkennungsFehler extends Error {
  */
 export type RecognizePallet = (bilder: Blob[], artikel: Artikel[]) => Promise<ErkennungsErgebnis>
 
-export function artikelPerBarcode(werte: string[], artikel: Artikel[]): Artikel | null {
-  for (const w of werte) {
-    const t = artikel.find((a) => (a.barcode && a.barcode === w) || a.artikelnummer === w)
-    if (t) return t
-  }
-  return null
-}
-
 async function barcodeTeil(bilder: Blob[], artikel: Artikel[]) {
-  const werte = (await barcodesLesen(bilder)) ?? []
-  return { barcodeWerte: werte, barcodeArtikelnummer: artikelPerBarcode(werte, artikel)?.artikelnummer ?? null }
+  const werte = await barcodesAusBildern(bilder).catch(() => [] as string[])
+  return { barcodeWerte: werte, barcodeArtikelnummer: nachschlagen(werte, [], artikel).artikel?.artikelnummer ?? null }
 }
 
 /** Echte Erkennung über die serverseitige Funktion /api/analyze */

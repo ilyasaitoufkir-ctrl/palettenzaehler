@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
+    "@zxing/library": "^0.21.3",
     "exceljs": "^4.4.0",
     "firebase": "11.10.0",
     "firebase-admin": "13.10.0",

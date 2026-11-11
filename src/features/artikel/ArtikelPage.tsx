@@ -5,6 +5,7 @@ import { Bestaetigen, Leer, Seitenkopf, Sheet, Spinner } from '../../components/
 import type { Artikel, ArtikelEingabe } from '../../types'
 import { artikelAusCsv, artikelAusZeilen } from '../../lib/utils/csv'
 import { dateiAusgeben } from '../../lib/utils/download'
+import { StammdatenTabs } from './StammdatenTabs'
 import { bildOptimieren } from '../../lib/utils/bild'
 
 const GEBINDE = ['Kanister', 'Karton', 'Fass', 'IBC', 'Eimer', 'Sack', 'Sonstiges']
@@ -135,7 +136,7 @@ export function ArtikelPage() {
   return (
     <>
       <Seitenkopf
-        titel="Artikelstamm"
+        titel="Stammdaten"
         unter={`${artikel.length} Artikel, dienen der KI als Abgleich`}
         aktion={
           <button className="btn btn-primary btn-icon" onClick={() => oeffnen(null)} aria-label="Artikel anlegen">
@@ -143,6 +144,8 @@ export function ArtikelPage() {
           </button>
         }
       />
+
+      <StammdatenTabs />
 
       <div className="mb-4 flex gap-2">
         <label className="relative flex-1">

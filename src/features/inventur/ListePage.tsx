@@ -237,6 +237,12 @@ export function ListePage() {
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <span className="tabular text-xl font-bold">{p.menge}</span>
+                        {p.sollMenge !== null && p.sollMenge !== p.menge && (
+                          <span className="tabular text-xs font-semibold text-bad">
+                            Soll {p.sollMenge} ({p.menge - p.sollMenge > 0 ? '+' : ''}
+                            {p.menge - p.sollMenge})
+                          </span>
+                        )}
                         <KonfidenzBadge wert={p.konfidenz} />
                       </div>
                     </Link>

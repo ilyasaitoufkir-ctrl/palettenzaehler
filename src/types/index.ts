@@ -65,6 +65,8 @@ export interface Position {
   palettenNummer: string
   /** abgelesene oder eingetragene Charge/Lot */
   charge: string
+  /** Menge laut Bestandsliste für diese Palette (Soll), falls bekannt */
+  sollMenge: number | null
   fotoUrls: string[]
   erstelltVon: string
   erstelltVonUid: string
@@ -101,4 +103,22 @@ export interface ErkennungsErgebnis {
   /** per Barcode erkannte Artikelnummer, falls das Gerät BarcodeDetector unterstützt */
   barcodeArtikelnummer: string | null
   barcodeWerte: string[]
+}
+
+/** Eine Palette aus der importierten Bestandsliste (Export aus dem ERP) */
+export interface BestandsPalette {
+  /** normalisierte Palettennummer, dient als Schlüssel */
+  id: string
+  palettenNummer: string
+  artikelnummer: string
+  bezeichnung: string
+  menge: number | null
+  charge: string
+  lagerplatz: string
+}
+
+export interface BestandsMeta {
+  importiertAm: number
+  quelle: string
+  anzahl: number
 }

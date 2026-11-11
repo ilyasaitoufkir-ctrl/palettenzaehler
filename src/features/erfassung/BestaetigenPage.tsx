@@ -6,6 +6,7 @@ import { Leer, Spinner } from '../../components/ui'
 import { queueAktualisieren } from '../offline/queue'
 import { analysieren, positionBestaetigen } from '../offline/verarbeitung'
 import { PositionForm, type KiAnzeige, type PositionStart } from './PositionForm'
+import { startwerte } from './startwerte'
 import { StatusPill } from './ErfassenPage'
 
 function useObjectUrls(bilder: Blob[] | undefined) {
@@ -20,33 +21,19 @@ function useObjectUrls(bilder: Blob[] | undefined) {
 
 export function BestaetigenPage() {
   const { id = '' } = useParams()
-  const { warteschlange, artikel, repo, erkennen, toast, online } = useApp()
+  const { warteschlange, artikel, bestand, repo, erkennen, toast, online } = useApp()
   const navigate = useNavigate()
   const eintrag = warteschlange.find((w) => w.id === id)
   const fotos = useObjectUrls(eintrag?.bilder)
   const [manuell, setManuell] = useState(false)
 
   const ki = eintrag?.ergebnis?.ki
-  const start = useMemo<PositionStart>(() => {
-    const barcodeNr = eintrag?.ergebnis?.barcodeArtikelnummer
-    const nr = barcodeNr ?? ki?.artikel_match ?? null
-    const a = nr ? artikel.find((x) => x.artikelnummer === nr) : undefined
-    return {
-      artikelId: a?.id ?? null,
-      artikelnummer: a?.artikelnummer ?? '',
-      // erkanntes Produkt (z. B. Chlor flüssig) als Bezeichnung vorschlagen
-      bezeichnung: a ? a.bezeichnung : ki?.produkt || '',
-      gebindeart: ki?.gebindeart ?? '',
-      lagen: ki?.lagen ?? null,
-      stueckProLage: ki?.stueck_pro_lage ?? a?.stueckProLage ?? null,
-      fehlend: ki?.fehlende_stueck ?? 0,
-      lagerplatz: '',
-      palettenNummer: ki?.paletten_nummer ?? '',
-      charge: ki?.charge ?? '',
-    }
+  const start = useMemo<PositionStart>(
+    () => startwerte(eintrag?.ergebnis?.barcodeWerte ?? [], ki ?? null, bestand, artikel),
     // nur beim ersten Ergebnis vorbelegen
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eintrag?.ergebnis])
+    [eintrag?.ergebnis],
+  )
 
   if (!eintrag) {
     return (
@@ -70,8 +57,7 @@ export function BestaetigenPage() {
         hinweise: ki.hinweise,
         etikett: ki.etikett_text,
         beschreibung: ki.beschreibung,
-        barcodeTreffer:
-          eintrag.ergebnis?.barcodeArtikelnummer ?? (ki.artikel_match && /Nummer zugeordnet/.test(ki.hinweise) ? ki.artikel_match : null),
+        barcodeTreffer: null,
         produkt: ki.produkt ?? '',
         barcodeNummern: ki.barcode_nummern ?? [],
       }
@@ -125,6 +111,7 @@ export function BestaetigenPage() {
         <PositionForm
           artikel={artikel}
           start={manuell ? { ...start, lagen: null, stueckProLage: null, fehlend: 0 } : start}
+          key={manuell ? 'manuell' : 'ki'}
           ki={manuell ? null : kiAnzeige}
           fotos={fotos}
           submitText="Position bestätigen"

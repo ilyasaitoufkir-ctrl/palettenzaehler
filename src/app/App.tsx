@@ -8,6 +8,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { InventurenPage } from '../features/inventur/InventurenPage'
 import { ListePage } from '../features/inventur/ListePage'
 import { ArtikelPage } from '../features/artikel/ArtikelPage'
+import { BestandPage } from '../features/artikel/BestandPage'
 import { ErfassenPage } from '../features/erfassung/ErfassenPage'
 import { BestaetigenPage } from '../features/erfassung/BestaetigenPage'
 import { ManuellPage, PositionBearbeitenPage } from '../features/erfassung/ManuellPage'
@@ -44,6 +45,7 @@ function Routen() {
         <Route path="/inventuren" element={<InventurenPage />} />
         <Route path="/liste" element={<ListePage />} />
         <Route path="/artikel" element={<ArtikelPage />} />
+        <Route path="/bestand" element={<BestandPage />} />
         <Route path="/erfassen" element={<ErfassenPage />} />
         <Route path="/erfassen/:id" element={<BestaetigenPage />} />
         <Route path="/manuell" element={<ManuellPage />} />

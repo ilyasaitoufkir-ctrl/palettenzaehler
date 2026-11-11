@@ -1,4 +1,4 @@
-import type { Artikel, Inventur, Position } from '../../types'
+import type { Artikel, BestandsMeta, BestandsPalette, Inventur, Position } from '../../types'
 import { bildOptimieren } from '../utils/bild'
 import { neueId } from '../utils/id'
 import type { DataRepo } from './repo'
@@ -18,12 +18,15 @@ interface QuerySnap {
   docs: DocSnap[]
 }
 interface DocRef {
+  get?(): Promise<DocSnap & { exists: boolean }>
+  onSnapshot?(next: (s: DocSnap & { exists: boolean }) => void, err?: (e: { code: string; message: string }) => void): Unsub
   set(d: Record<string, unknown>): Promise<void>
   update(d: Record<string, unknown>): Promise<void>
   delete(): Promise<void>
 }
 interface CollRef {
   doc(id?: string): DocRef
+  get?(): Promise<QuerySnap>
   onSnapshot(next: (s: QuerySnap) => void, err?: (e: { code: string; message: string }) => void): Unsub
 }
 interface DB {
@@ -207,6 +210,45 @@ export async function createArtifactRepo(): Promise<DataRepo> {
       return url
     },
 
+    onBestand(cb, fehler) {
+      let liste: BestandsPalette[] = []
+      let meta: BestandsMeta | null = null
+      const a = abonnieren<BestandsPalette>(
+        db!.collection('bestand'),
+        (id, d) => ({
+          id,
+          palettenNummer: str(d.palettenNummer),
+          artikelnummer: str(d.artikelnummer),
+          bezeichnung: str(d.bezeichnung),
+          menge: numN(d.menge),
+          charge: str(d.charge),
+          lagerplatz: str(d.lagerplatz),
+        }),
+        (l) => {
+          liste = l
+          cb(liste, meta)
+        },
+        fehler,
+      )
+      const b =
+        db!.doc('einstellungen/bestand').onSnapshot?.((d) => {
+          const x = d.data()
+          meta = x ? { importiertAm: num(x.importiertAm), quelle: str(x.quelle), anzahl: num(x.anzahl) } : null
+          cb(liste, meta)
+        }) ?? (() => undefined)
+      return () => {
+        a()
+        b()
+      }
+    },
+    async bestandErsetzen(liste, quelle) {
+      const alt = (await db!.collection('bestand').get?.())?.docs ?? []
+      const neu = new Set(liste.map((p) => p.id))
+      for (const d of alt) if (!neu.has(d.id)) await db!.doc(`bestand/${d.id}`).delete()
+      for (const p of liste) await db!.doc(`bestand/${p.id}`).set(sauber(p))
+      await db!.doc('einstellungen/bestand').set({ importiertAm: Date.now(), quelle, anzahl: liste.length })
+    },
+
     onPositionen(inventurId, cb, fehler) {
       return abonnieren<Position>(
         db!.collection(pfadPositionen(inventurId)),
@@ -229,6 +271,7 @@ export async function createArtifactRepo(): Promise<DataRepo> {
           etikettText: str(d.etikettText) || null,
           palettenNummer: str(d.palettenNummer),
           charge: str(d.charge),
+          sollMenge: numN(d.sollMenge),
           fotoUrls: Array.isArray(d.fotoUrls) ? d.fotoUrls.filter((u): u is string => typeof u === 'string') : [],
           erstelltVon: str(d.erstelltVon),
           erstelltVonUid: str(d.erstelltVonUid),

@@ -9,6 +9,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -21,7 +22,7 @@ import {
 } from 'firebase/firestore'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { firebase } from '../firebase/client'
-import type { Artikel, Inventur, Position } from '../../types'
+import type { Artikel, BestandsMeta, BestandsPalette, Inventur, Position } from '../../types'
 import type { DataRepo } from './repo'
 
 const ms = (t: unknown): number => {
@@ -81,6 +82,7 @@ function zuPosition(id: string, inventurId: string, d: DocumentData): Position {
     etikettText: d.etikettText ?? null,
     palettenNummer: d.palettenNummer ?? '',
     charge: d.charge ?? '',
+    sollMenge: typeof d.sollMenge === 'number' ? d.sollMenge : null,
     fotoUrls: Array.isArray(d.fotoUrls) ? d.fotoUrls : [],
     erstelltVon: d.erstelltVon ?? '',
     erstelltVonUid: d.erstelltVonUid ?? '',
@@ -199,6 +201,56 @@ export function createFirebaseRepo(): DataRepo {
       const url = await getDownloadURL(r)
       await updateDoc(doc(db, 'artikel', artikelId), { referenzfotoUrl: url })
       return url
+    },
+
+    onBestand(cb, fehler) {
+      let liste: BestandsPalette[] = []
+      let meta: BestandsMeta | null = null
+      const a = onSnapshot(
+        collection(db, 'bestand'),
+        (snap) => {
+          liste = snap.docs.map((d) => {
+            const x = d.data()
+            return {
+              id: d.id,
+              palettenNummer: x.palettenNummer ?? '',
+              artikelnummer: x.artikelnummer ?? '',
+              bezeichnung: x.bezeichnung ?? '',
+              menge: typeof x.menge === 'number' ? x.menge : null,
+              charge: x.charge ?? '',
+              lagerplatz: x.lagerplatz ?? '',
+            }
+          })
+          cb(liste, meta)
+        },
+        (e) => fehler?.(e),
+      )
+      const b = onSnapshot(
+        doc(db, 'einstellungen', 'bestand'),
+        (d) => {
+          const x = d.data()
+          meta = x ? { importiertAm: ms(x.importiertAm), quelle: x.quelle ?? '', anzahl: x.anzahl ?? 0 } : null
+          cb(liste, meta)
+        },
+        () => undefined,
+      )
+      return () => {
+        a()
+        b()
+      }
+    },
+    async bestandErsetzen(liste, quelle) {
+      const alt = await getDocs(collection(db, 'bestand'))
+      const neu = new Set(liste.map((p) => p.id))
+      const ops: ((b: ReturnType<typeof writeBatch>) => void)[] = []
+      alt.docs.filter((d) => !neu.has(d.id)).forEach((d) => ops.push((b) => b.delete(d.ref)))
+      liste.forEach((p) => ops.push((b) => b.set(doc(db, 'bestand', p.id), { ...p })))
+      ops.push((b) => b.set(doc(db, 'einstellungen', 'bestand'), { importiertAm: serverTimestamp(), quelle, anzahl: liste.length }))
+      for (let i = 0; i < ops.length; i += 450) {
+        const b = writeBatch(db)
+        ops.slice(i, i + 450).forEach((o) => o(b))
+        await b.commit()
+      }
     },
 
     onPositionen(inventurId, cb, fehler) {

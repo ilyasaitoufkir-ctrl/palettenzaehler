@@ -1,15 +1,20 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ClipboardEdit, Trash2 } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Bestaetigen, KonfidenzBadge, Leer } from '../../components/ui'
 import { neueId } from '../../lib/utils/id'
 import { zeitRelativ } from '../../lib/utils/format'
 import { PositionForm } from './PositionForm'
+import { startwerte } from './startwerte'
 
 export function ManuellPage() {
-  const { aktiveInventur, artikel, repo, toast } = useApp()
+  const { aktiveInventur, artikel, bestand, repo, toast } = useApp()
   const navigate = useNavigate()
+  const ort = useLocation()
+  // vom Barcode Scanner übergebene Werte
+  const scan = (ort.state as { scan?: string[] } | null)?.scan ?? []
+  const [start] = useState(() => startwerte(scan, null, bestand, artikel))
   // feste ID für diesen Vorgang, ein doppelter Klick legt keine zweite Position an
   const [id] = useState(neueId)
 
@@ -19,11 +24,13 @@ export function ManuellPage() {
 
   return (
     <>
-      <h1 className="mb-1 text-[1.625rem] leading-tight font-bold tracking-tight">Manuell erfassen</h1>
-      <p className="mb-5 text-sm text-ink-2">Ohne Foto und ohne KI, zum Beispiel bei schlechtem Licht oder ohne Netz.</p>
+      <h1 className="mb-1 text-[1.625rem] leading-tight font-bold tracking-tight">{scan.length ? 'Gescannte Palette' : 'Manuell erfassen'}</h1>
+      <p className="mb-5 text-sm text-ink-2">
+        {scan.length ? `Gescannt: ${scan.join(', ')}` : 'Ohne Foto und ohne KI, zum Beispiel bei schlechtem Licht oder ohne Netz.'}
+      </p>
       <PositionForm
         artikel={artikel}
-        start={{ artikelId: null, artikelnummer: '', bezeichnung: '', gebindeart: '', lagen: null, stueckProLage: null, fehlend: 0, lagerplatz: '', palettenNummer: '', charge: '' }}
+        start={start}
         submitText="Position speichern"
         onSubmit={async (e) => {
           await repo.positionAnlegen(aktiveInventur.id, id, e)
@@ -84,6 +91,7 @@ export function PositionBearbeitenPage() {
           lagerplatz: p.lagerplatz,
           palettenNummer: p.palettenNummer,
           charge: p.charge,
+          sollMenge: p.sollMenge,
         }}
         submitText="Änderungen speichern"
         onSubmit={async (e) => {

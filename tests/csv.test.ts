@@ -18,7 +18,7 @@ const pos = (over: Partial<Position>): Position => ({
   quelle: 'ki',
   kiGesamt: 1,
   kiHinweise: '',
-  etikettText: null, palettenNummer: '', charge: '',
+  etikettText: null, palettenNummer: '', charge: '', sollMenge: null,
   fotoUrls: [],
   erstelltVon: 'a@b.de',
   erstelltVonUid: 'u',

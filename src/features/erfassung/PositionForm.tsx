@@ -16,6 +16,10 @@ export interface PositionStart {
   lagerplatz: string
   palettenNummer: string
   charge: string
+  /** Menge laut Bestandsliste */
+  sollMenge: number | null
+  /** Hinweis, wodurch Palette oder Artikel zugeordnet wurde */
+  zuordnung?: string | null
 }
 
 /** Vorschlag für einen neuen Artikel aus dem, was die KI erkannt hat */
@@ -109,6 +113,7 @@ export function PositionForm({
         etikettText: ki?.etikett ?? null,
         palettenNummer: palettenNummer.trim(),
         charge: charge.trim(),
+        sollMenge: start.sollMenge,
       })
     } finally {
       setSendet(false)
@@ -117,6 +122,12 @@ export function PositionForm({
 
   return (
     <form onSubmit={absenden} className="flex flex-col gap-5">
+      {start.zuordnung && (
+        <p className="flex items-center gap-2 rounded-[14px] bg-ok-soft px-4 py-3 text-sm font-semibold text-ok">
+          <Barcode className="size-4 shrink-0" /> {start.zuordnung}
+        </p>
+      )}
+
       {fotos.length > 0 && (
         <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
           {fotos.map((f, i) => (
@@ -253,6 +264,41 @@ export function PositionForm({
         <p className={`tabular text-4xl font-bold ${ergebnis.menge === null ? 'text-ink-3' : 'text-accent'}`}>{ergebnis.menge ?? '?'}</p>
         {ergebnis.fehler && <p className="mt-1 text-sm font-medium text-bad">{ergebnis.fehler}</p>}
       </div>
+
+      {start.sollMenge !== null && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-4 py-3">
+          <div className="min-w-0">
+            <p className="eyebrow">Laut Bestand</p>
+            <p className="tabular text-lg font-bold">{start.sollMenge} Stück</p>
+            {ergebnis.menge !== null && ergebnis.menge !== start.sollMenge && (
+              <p className="tabular text-sm font-semibold text-bad">
+                Differenz {ergebnis.menge - start.sollMenge > 0 ? '+' : ''}
+                {ergebnis.menge - start.sollMenge}
+              </p>
+            )}
+            {ergebnis.menge === start.sollMenge && <p className="text-sm font-semibold text-ok">stimmt mit dem Bestand überein</p>}
+          </div>
+          {ergebnis.menge !== start.sollMenge && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                const soll = start.sollMenge ?? 0
+                const s = parseZahl(spl)
+                if (s && s > 0 && soll % s === 0) {
+                  setLagen(String(soll / s))
+                } else {
+                  setLagen('1')
+                  setSpl(String(soll))
+                }
+                setFehlend('0')
+              }}
+            >
+              Bestand übernehmen
+            </button>
+          )}
+        </div>
+      )}
 
       {abweichung && (
         <p className="flex gap-2 rounded-[14px] bg-warn-soft px-4 py-3 text-sm text-warn" role="alert">

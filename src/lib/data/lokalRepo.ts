@@ -1,4 +1,4 @@
-import type { Artikel, Inventur, Position } from '../../types'
+import type { Artikel, BestandsMeta, BestandsPalette, Inventur, Position } from '../../types'
 import { bildOptimieren, blobZuDataUrl } from '../utils/bild'
 import { neueId } from '../utils/id'
 import type { AuthZustand, DataRepo } from './repo'
@@ -18,6 +18,8 @@ interface Store {
   inventuren: Inventur[]
   artikel: Artikel[]
   positionen: Record<string, Position[]>
+  bestand?: BestandsPalette[]
+  bestandMeta?: BestandsMeta | null
 }
 
 const leer = (): Store => ({ inventuren: [], artikel: [], positionen: {} })
@@ -201,11 +203,21 @@ export function createLokalRepo(): DataRepo {
       return url
     },
 
+    onBestand(cb) {
+      return abonnieren(() => cb(store().bestand ?? [], store().bestandMeta ?? null))
+    },
+    async bestandErsetzen(liste, quelle) {
+      aendern((s) => {
+        s.bestand = liste
+        s.bestandMeta = { importiertAm: Date.now(), quelle, anzahl: liste.length }
+      })
+    },
+
     onPositionen(inventurId, cb) {
       return abonnieren(() =>
         cb(
           [...(store().positionen[inventurId] ?? [])]
-            .map((p) => ({ ...p, palettenNummer: p.palettenNummer ?? '', charge: p.charge ?? '' }))
+            .map((p) => ({ ...p, palettenNummer: p.palettenNummer ?? '', charge: p.charge ?? '', sollMenge: p.sollMenge ?? null }))
             .sort((a, b) => b.erstelltAm - a.erstelltAm),
         ),
       )

@@ -72,6 +72,8 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
     { header: 'Stück pro Lage', key: 'spl', width: 13 },
     { header: 'Fehlend', key: 'fehlend', width: 9 },
     { header: 'Menge', key: 'menge', width: 10 },
+    { header: 'Soll Bestand', key: 'soll', width: 12 },
+    { header: 'Differenz', key: 'diff', width: 10 },
     { header: 'Konfidenz', key: 'konf', width: 20 },
     { header: 'KI Schätzung', key: 'ki', width: 12 },
     { header: 'KI Hinweis', key: 'hinweis', width: 40 },
@@ -94,6 +96,8 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
       spl: p.stueckProLage,
       fehlend: p.fehlend,
       menge: p.menge,
+      soll: p.sollMenge ?? '',
+      diff: p.sollMenge === null ? '' : p.menge - p.sollMenge,
       konf: KONF_TEXT[p.konfidenz],
       ki: p.kiGesamt ?? '',
       hinweis: p.kiHinweise,
@@ -213,6 +217,27 @@ export async function artikelVorlage(): Promise<Blob> {
     { header: 'Lagen pro Palette', width: 16 },
     { header: 'Barcode', width: 18 },
     { header: 'Sollbestand', width: 12 },
+  ]
+  const kopf = ws.getRow(1)
+  kopf.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+  kopf.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ORANGE } }
+  ws.views = [{ state: 'frozen', ySplit: 1 }]
+  const buf = await wb.xlsx.writeBuffer()
+  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+}
+
+/** Leere Excel Vorlage für die Bestandsliste (Export aus dem ERP) */
+export async function bestandVorlage(): Promise<Blob> {
+  const ExcelJS = await excel()
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Bestand')
+  ws.columns = [
+    { header: 'Palettennummer', width: 22 },
+    { header: 'Artikelnummer', width: 16 },
+    { header: 'Bezeichnung', width: 30 },
+    { header: 'Menge', width: 10 },
+    { header: 'Charge', width: 14 },
+    { header: 'Lagerplatz', width: 12 },
   ]
   const kopf = ws.getRow(1)
   kopf.font = { bold: true, color: { argb: 'FFFFFFFF' } }

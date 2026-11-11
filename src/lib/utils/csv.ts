@@ -1,4 +1,5 @@
-import type { Artikel, Position } from '../../types'
+import type { Artikel, BestandsPalette, Position } from '../../types'
+import { nummerNorm } from './gs1'
 
 export const CSV_BOM = '﻿'
 const TRENNER = ';'
@@ -251,4 +252,73 @@ export function dateiHerunterladen(name: string, inhalt: string, typ = 'text/csv
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+const BESTAND_ALIAS: Record<string, keyof Omit<BestandsPalette, 'id'>> = {
+  palettennummer: 'palettenNummer',
+  palette: 'palettenNummer',
+  palettennr: 'palettenNummer',
+  nve: 'palettenNummer',
+  sscc: 'palettenNummer',
+  lenummer: 'palettenNummer',
+  le: 'palettenNummer',
+  ladeeinheit: 'palettenNummer',
+  barcode: 'palettenNummer',
+  artikelnummer: 'artikelnummer',
+  artikelnr: 'artikelnummer',
+  artikel: 'artikelnummer',
+  materialnummer: 'artikelnummer',
+  material: 'artikelnummer',
+  bezeichnung: 'bezeichnung',
+  artikelbezeichnung: 'bezeichnung',
+  materialkurztext: 'bezeichnung',
+  menge: 'menge',
+  bestand: 'menge',
+  anzahl: 'menge',
+  stueck: 'menge',
+  stück: 'menge',
+  charge: 'charge',
+  lot: 'charge',
+  chargennummer: 'charge',
+  lagerplatz: 'lagerplatz',
+  platz: 'lagerplatz',
+  lagerort: 'lagerplatz',
+}
+
+export interface BestandImportErgebnis {
+  paletten: BestandsPalette[]
+  fehler: string[]
+}
+
+/** Bestandsliste aus Tabellenzeilen (Excel oder CSV), erste Zeile sind die Spaltennamen */
+export function bestandAusZeilen(roh: string[][]): BestandImportErgebnis {
+  const zeilen = roh.filter((z) => z.some((f) => String(f ?? '').trim() !== ''))
+  if (zeilen.length < 2) return { paletten: [], fehler: ['Die Datei enthält keine Datenzeilen.'] }
+  const kopf = zeilen[0].map((k) => BESTAND_ALIAS[normSpalte(String(k)).replace(/-/g, '')])
+  if (!kopf.includes('palettenNummer')) return { paletten: [], fehler: ['Spalte "Palettennummer" (oder NVE, SSCC, LE-Nummer) wird benötigt.'] }
+  const fehler: string[] = []
+  const map = new Map<string, BestandsPalette>()
+  zeilen.slice(1).forEach((z, i) => {
+    const get = (k: string) => {
+      const idx = kopf.indexOf(k as never)
+      return idx >= 0 ? String(z[idx] ?? '').trim() : ''
+    }
+    const nr = get('palettenNummer')
+    const id = nummerNorm(nr)
+    if (!id) return fehler.push(`Zeile ${i + 2}: Palettennummer fehlt`)
+    const mengeText = get('menge').replace(',', '.')
+    const menge = mengeText === '' ? null : Number(mengeText)
+    if (menge !== null && (!Number.isFinite(menge) || menge < 0)) return fehler.push(`Zeile ${i + 2}: Menge ist keine gültige Zahl`)
+    if (map.has(id)) fehler.push(`Zeile ${i + 2}: Palette ${nr} doppelt, letzte Zeile gilt`)
+    map.set(id, {
+      id,
+      palettenNummer: nr,
+      artikelnummer: get('artikelnummer'),
+      bezeichnung: get('bezeichnung'),
+      menge: menge === null ? null : Math.round(menge),
+      charge: get('charge'),
+      lagerplatz: get('lagerplatz'),
+    })
+  })
+  return { paletten: Array.from(map.values()), fehler }
 }

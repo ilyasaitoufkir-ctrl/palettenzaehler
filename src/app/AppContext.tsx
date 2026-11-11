@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ladeRepo, type AuthZustand, type DataRepo } from '../lib/data'
-import type { Artikel, Inventur, Nutzer, Position } from '../types'
+import type { Artikel, BestandsMeta, BestandsPalette, Inventur, Nutzer, Position } from '../types'
 import { createApiRecognizer, createArtifactRecognizer, type RecognizePallet } from '../features/erfassung/erkennung'
 import { onQueue, queueAlle, queueAufraeumen, type QueueEintrag } from '../features/offline/queue'
 import { warteschlangeAbarbeiten } from '../features/offline/verarbeitung'
@@ -17,6 +17,8 @@ interface AppWert {
   nutzer: Nutzer | null
   inventuren: Inventur[]
   artikel: Artikel[]
+  bestand: BestandsPalette[]
+  bestandMeta: BestandsMeta | null
   aktiveInventur: Inventur | null
   aktiveInventurWaehlen(id: string): void
   positionen: Position[]
@@ -70,6 +72,8 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
   const [auth, setAuth] = useState<AuthZustand>({ status: 'laden' })
   const [inventuren, setInventuren] = useState<Inventur[]>([])
   const [artikel, setArtikel] = useState<Artikel[]>([])
+  const [bestand, setBestand] = useState<BestandsPalette[]>([])
+  const [bestandMeta, setBestandMeta] = useState<BestandsMeta | null>(null)
   const [positionen, setPositionen] = useState<Position[]>([])
   const [positionenGeladen, setPositionenGeladen] = useState(false)
   const [aktivId, setAktivId] = useState<string | null>(() => {
@@ -107,9 +111,14 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
     if (!nutzer) return
     const a = repo.onInventuren(setInventuren, datenFehler)
     const b = repo.onArtikel(setArtikel, datenFehler)
+    const c = repo.onBestand((l, m) => {
+      setBestand(l)
+      setBestandMeta(m)
+    }, datenFehler)
     return () => {
       a()
       b()
+      c()
     }
   }, [repo, nutzer, datenFehler])
 
@@ -195,6 +204,8 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
     nutzer,
     inventuren,
     artikel,
+    bestand,
+    bestandMeta,
     aktiveInventur,
     aktiveInventurWaehlen,
     positionen,
