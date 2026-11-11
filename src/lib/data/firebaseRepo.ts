@@ -165,6 +165,16 @@ export function createFirebaseRepo(): DataRepo {
     async inventurAktualisieren(id, daten) {
       imHintergrund(updateDoc(doc(db, 'inventuren', id), ohneUndefined(daten)))
     },
+    async inventurLoeschen(id) {
+      // Firestore löscht Unterkollektionen nicht automatisch: erst die Positionen, dann die Inventur
+      const pos = await getDocs(collection(db, 'inventuren', id, 'positionen'))
+      const refs = [...pos.docs.map((d) => d.ref), doc(db, 'inventuren', id)]
+      for (let i = 0; i < refs.length; i += 450) {
+        const b = writeBatch(db)
+        refs.slice(i, i + 450).forEach((r) => b.delete(r))
+        await b.commit()
+      }
+    },
 
     onArtikel(cb, fehler) {
       const q = query(collection(db, 'artikel'), orderBy('artikelnummer'))

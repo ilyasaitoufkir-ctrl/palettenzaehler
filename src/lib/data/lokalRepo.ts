@@ -158,6 +158,12 @@ export function createLokalRepo(): DataRepo {
         if (i) Object.assign(i, daten)
       })
     },
+    async inventurLoeschen(id) {
+      aendern((s) => {
+        s.inventuren = s.inventuren.filter((x) => x.id !== id)
+        delete s.positionen[id]
+      })
+    },
 
     onArtikel(cb) {
       return abonnieren(() => cb([...store().artikel].sort((a, b) => a.artikelnummer.localeCompare(b.artikelnummer))))

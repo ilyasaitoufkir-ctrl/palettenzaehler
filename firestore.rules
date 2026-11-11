@@ -45,7 +45,8 @@ service cloud.firestore {
         && request.resource.data.status in ['aktiv', 'abgeschlossen'];
       allow update: if istTeam()
         && request.resource.data.status in ['aktiv', 'abgeschlossen'];
-      allow delete: if false;
+      // Löschen nur für freigeschaltete Teammitglieder, zusammen mit den Positionen (siehe Repo)
+      allow delete: if istTeam();
 
       match /positionen/{positionId} {
         allow read: if istTeam();

@@ -24,6 +24,8 @@ export interface DataRepo {
   onInventuren(cb: (liste: Inventur[]) => void, fehler?: (e: Error) => void): Abmelden
   inventurAnlegen(eingabe: InventurEingabe): Promise<string>
   inventurAktualisieren(id: string, daten: Partial<InventurEingabe>): Promise<void>
+  /** Löscht eine Inventur samt aller ihrer Positionen. Nicht rückgängig zu machen. */
+  inventurLoeschen(id: string): Promise<void>
 
   onArtikel(cb: (liste: Artikel[]) => void, fehler?: (e: Error) => void): Abmelden
   artikelSpeichern(id: string | null, eingabe: ArtikelEingabe): Promise<string>

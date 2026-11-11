@@ -156,6 +156,11 @@ export async function createArtifactRepo(): Promise<DataRepo> {
     async inventurAktualisieren(id, daten) {
       db!.doc(`inventuren/${id}`).update(sauber(daten)).catch(schreibfehler)
     },
+    async inventurLoeschen(id) {
+      const pos = (await db!.collection(pfadPositionen(id)).get?.())?.docs ?? []
+      for (const d of pos) await db!.doc(`${pfadPositionen(id)}/${d.id}`).delete()
+      await db!.doc(`inventuren/${id}`).delete()
+    },
 
     onArtikel(cb, fehler) {
       return abonnieren<Artikel>(

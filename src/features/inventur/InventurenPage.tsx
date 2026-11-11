@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Boxes, Check, Lock, Pencil, Plus, Unlock } from 'lucide-react'
+import { Boxes, Check, Lock, Pencil, Plus, Trash2, Unlock } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Bestaetigen, Leer, Seitenkopf, Sheet } from '../../components/ui'
 import type { Inventur, InventurEingabe } from '../../types'
@@ -13,6 +13,7 @@ export function InventurenPage() {
   const [params, setParams] = useSearchParams()
   const [bearbeiten, setBearbeiten] = useState<{ id: string | null; daten: InventurEingabe } | null>(null)
   const [abschliessen, setAbschliessen] = useState<Inventur | null>(null)
+  const [loeschen, setLoeschen] = useState<Inventur | null>(null)
 
   useEffect(() => {
     if (params.get('neu') === '1') {
@@ -103,6 +104,13 @@ export function InventurenPage() {
                       <Unlock className="size-4" /> Wieder öffnen
                     </button>
                   )}
+                  <button
+                    className="btn btn-ghost flex-1 rounded-none border-l border-line text-sm text-bad"
+                    onClick={() => setLoeschen(i)}
+                    aria-label={`Inventur ${i.name} löschen`}
+                  >
+                    <Trash2 className="size-4" /> Löschen
+                  </button>
                 </div>
               </li>
             )
@@ -158,6 +166,22 @@ export function InventurenPage() {
           </form>
         )}
       </Sheet>
+
+      <Bestaetigen
+        offen={!!loeschen}
+        titel="Inventur löschen?"
+        text={`„${loeschen?.name ?? ''}“ wird mit allen erfassten Paletten endgültig gelöscht. Das lässt sich nicht rückgängig machen.`}
+        ja="Endgültig löschen"
+        gefaehrlich
+        onNein={() => setLoeschen(null)}
+        onJa={async () => {
+          if (loeschen) {
+            await repo.inventurLoeschen(loeschen.id)
+            toast('Inventur gelöscht')
+          }
+          setLoeschen(null)
+        }}
+      />
 
       <Bestaetigen
         offen={!!abschliessen}
