@@ -23,7 +23,7 @@ export function ManuellPage() {
       <p className="mb-5 text-sm text-ink-2">Ohne Foto und ohne KI, zum Beispiel bei schlechtem Licht oder ohne Netz.</p>
       <PositionForm
         artikel={artikel}
-        start={{ artikelId: null, artikelnummer: '', bezeichnung: '', gebindeart: '', lagen: null, stueckProLage: null, fehlend: 0, lagerplatz: '' }}
+        start={{ artikelId: null, artikelnummer: '', bezeichnung: '', gebindeart: '', lagen: null, stueckProLage: null, fehlend: 0, lagerplatz: '', palettenNummer: '', charge: '' }}
         submitText="Position speichern"
         onSubmit={async (e) => {
           await repo.positionAnlegen(aktiveInventur.id, id, e)
@@ -82,6 +82,8 @@ export function PositionBearbeitenPage() {
           stueckProLage: p.stueckProLage,
           fehlend: p.fehlend,
           lagerplatz: p.lagerplatz,
+          palettenNummer: p.palettenNummer,
+          charge: p.charge,
         }}
         submitText="Änderungen speichern"
         onSubmit={async (e) => {

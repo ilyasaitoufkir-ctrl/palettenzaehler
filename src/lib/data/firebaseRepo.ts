@@ -79,6 +79,8 @@ function zuPosition(id: string, inventurId: string, d: DocumentData): Position {
     kiGesamt: d.kiGesamt ?? null,
     kiHinweise: d.kiHinweise ?? '',
     etikettText: d.etikettText ?? null,
+    palettenNummer: d.palettenNummer ?? '',
+    charge: d.charge ?? '',
     fotoUrls: Array.isArray(d.fotoUrls) ? d.fotoUrls : [],
     erstelltVon: d.erstelltVon ?? '',
     erstelltVonUid: d.erstelltVonUid ?? '',

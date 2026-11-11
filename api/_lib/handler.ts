@@ -83,7 +83,7 @@ export function createAnalyseHandler(deps: HandlerAbhaengigkeiten) {
         { type: 'text', text: nutzerText(anfrage.artikel) },
       ]
       const nachrichten: ModellNachricht[] = [{ role: 'user', content: inhalt }]
-      const stamm = anfrage.artikel.map((a) => a.nr)
+      const stamm = anfrage.artikel.map((a) => ({ nr: a.nr, barcode: a.barcode }))
 
       let antwort = await deps.modellAufrufen(SYSTEM_PROMPT, nachrichten)
       let v = kiAntwortValidieren(antwort, stamm)

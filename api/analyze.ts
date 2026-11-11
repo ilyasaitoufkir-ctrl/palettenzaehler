@@ -66,6 +66,10 @@ const ANTWORT_SCHEMA = {
     beschreibung: { type: 'string' },
     gebindeart: { type: 'string' },
     etikett_text: { type: ['string', 'null'] },
+    produkt: { type: 'string' },
+    paletten_nummer: { type: ['string', 'null'] },
+    barcode_nummern: { type: 'array', items: { type: 'string' } },
+    charge: { type: ['string', 'null'] },
     stueck_pro_lage: { type: ['integer', 'null'] },
     lagen: { type: ['integer', 'null'] },
     fehlende_stueck: { type: 'integer' },
@@ -73,7 +77,7 @@ const ANTWORT_SCHEMA = {
     konfidenz: { type: 'string', enum: ['hoch', 'mittel', 'niedrig'] },
     hinweise: { type: 'string' },
   },
-  required: ['artikel_match', 'beschreibung', 'gebindeart', 'etikett_text', 'stueck_pro_lage', 'lagen', 'fehlende_stueck', 'gesamt_geschaetzt', 'konfidenz', 'hinweise'],
+  required: ['artikel_match', 'beschreibung', 'gebindeart', 'etikett_text', 'produkt', 'paletten_nummer', 'barcode_nummern', 'charge', 'stueck_pro_lage', 'lagen', 'fehlende_stueck', 'gesamt_geschaetzt', 'konfidenz', 'hinweise'],
   additionalProperties: false,
 }
 

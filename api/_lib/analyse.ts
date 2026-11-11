@@ -27,6 +27,7 @@ export const AnalyseAnfrageSchema = z.object({
         bez: z.string().trim().max(160),
         gebinde: z.string().trim().max(80).optional().default(''),
         stueckProLage: z.number().int().min(0).max(10_000).nullable().optional().default(null),
+        barcode: z.string().trim().max(64).nullable().optional().default(null),
       }),
     )
     .max(MAX_ARTIKEL)
@@ -42,6 +43,10 @@ export const KiErgebnisSchema = z
     beschreibung: z.string().max(600),
     gebindeart: z.string().max(120),
     etikett_text: z.string().max(600).nullable(),
+    produkt: z.string().max(160).optional().default(''),
+    paletten_nummer: z.string().max(64).nullable().optional().default(null),
+    barcode_nummern: z.array(z.string().max(64)).max(10).optional().default([]),
+    charge: z.string().max(64).nullable().optional().default(null),
     stueck_pro_lage: ganzeZahlOderNull,
     lagen: ganzeZahlOderNull,
     fehlende_stueck: z.number().int().min(0).max(100_000),
@@ -80,6 +85,10 @@ WICHTIGE REGELN:
 - Wenn kein Gebinde zuverlässig erkennbar ist, rate nicht.
 - Setze die Konfidenz auf niedrig, wenn wesentliche Informationen unsicher sind.
 - Unterscheide zwischen sichtbarer Menge und geschätzter Gesamtmenge.
+- Lies Etiketten genau: Produktname (z. B. "Chlor flüssig") gehört in produkt, kurz und so wie auf dem Etikett.
+- Lies Palettennummern (Palettenschein, NVE/SSCC, Lagerplatz Etikett) und Ziffern unter Barcodes oder QR Codes Zeichen für Zeichen ab. Nur übernehmen, was eindeutig lesbar ist, nichts ergänzen oder raten.
+- Chargen oder Losnummern (Charge, Lot, LOT, Ch.-B.) gehören in charge.
+- Wenn eine gelesene Barcode Nummer oder Artikelnummer im Artikelstamm vorkommt, setze artikel_match auf diese Artikelnummer.
 - Gib keine scheinbar exakten Zahlen aus, wenn die Bilder keine zuverlässige Zählung erlauben.
 
 Antworte ausschließlich mit einem JSON-Objekt nach dem vorgegebenen Schema, ohne Markdown und ohne weiteren Text.
@@ -89,7 +98,11 @@ const SCHEMA_TEXT = `{
   "artikel_match": "Artikelnummer aus dem Artikelstamm oder null",
   "beschreibung": "kurze Beschreibung dessen, was auf der Palette steht",
   "gebindeart": "z. B. Kanister 25 l, Karton, Fass, IBC",
-  "etikett_text": "gelesener Etikett oder Chargentext oder null",
+  "etikett_text": "weiterer gelesener Etikettentext oder null",
+  "produkt": "Produktname laut Etikett, z. B. Chlor flüssig, sonst leer",
+  "paletten_nummer": "abgelesene Palettennummer oder NVE/SSCC oder null",
+  "barcode_nummern": ["abgelesene Ziffern unter Barcodes, sonst leere Liste"],
+  "charge": "Charge/Lot oder null",
   "stueck_pro_lage": "ganze Zahl oder null",
   "lagen": "ganze Zahl oder null",
   "fehlende_stueck": "ganze Zahl ab 0 (fehlende Gebinde in angebrochenen Lagen)",
@@ -100,11 +113,11 @@ const SCHEMA_TEXT = `{
 
 export function nutzerText(artikel: AnalyseAnfrage['artikel']): string {
   const stamm = artikel.length
-    ? artikel.map((a) => `${a.nr} | ${a.bez} | ${a.gebinde || '-'} | Stück pro Lage: ${a.stueckProLage ?? '-'}`).join('\n')
+    ? artikel.map((a) => `${a.nr} | ${a.bez} | ${a.gebinde || '-'} | Stück pro Lage: ${a.stueckProLage ?? '-'} | Barcode: ${a.barcode || '-'}`).join('\n')
     : '(kein Artikelstamm hinterlegt, artikel_match muss null sein)'
   return `Analysiere die Palette auf den Bildern (Front, Seite und/oder Draufsicht derselben Palette).
 
-ARTIKELSTAMM (Artikelnummer | Bezeichnung | Gebinde | Stück pro Lage):
+ARTIKELSTAMM (Artikelnummer | Bezeichnung | Gebinde | Stück pro Lage | Barcode):
 ${stamm}
 
 Antworte nur mit JSON nach diesem Schema:
@@ -155,6 +168,17 @@ export function kiAntwortNormalisieren(roh: unknown): unknown {
   for (const k of ['beschreibung', 'gebindeart', 'hinweise']) if (o[k] === null || o[k] === undefined) o[k] = ''
   for (const k of ['beschreibung', 'gebindeart', 'hinweise', 'etikett_text']) if (typeof o[k] === 'string') o[k] = (o[k] as string).slice(0, k === 'hinweise' ? 1200 : 600)
   if (o.etikett_text === undefined || o.etikett_text === '') o.etikett_text = null
+  for (const k of ['paletten_nummer', 'charge']) {
+    if (typeof o[k] === 'number') o[k] = String(o[k])
+    if (o[k] === '' || o[k] === undefined) o[k] = null
+    if (typeof o[k] === 'string') o[k] = (o[k] as string).trim().slice(0, 64) || null
+  }
+  if (o.produkt === null || o.produkt === undefined) o.produkt = ''
+  if (typeof o.produkt === 'string') o.produkt = o.produkt.trim().slice(0, 160)
+  if (typeof o.barcode_nummern === 'string') o.barcode_nummern = [o.barcode_nummern]
+  if (Array.isArray(o.barcode_nummern))
+    o.barcode_nummern = Array.from(new Set(o.barcode_nummern.map((x) => String(x).replace(/\s+/g, '').slice(0, 64)).filter(Boolean))).slice(0, 10)
+  else o.barcode_nummern = []
   if (o.artikel_match === undefined || o.artikel_match === '') o.artikel_match = null
   if (typeof o.artikel_match === 'number') o.artikel_match = String(o.artikel_match)
   return o
@@ -168,7 +192,14 @@ export type ValidierungsErgebnis =
  * KI Ausgaben gelten als unzuverlässige externe Eingabe:
  * JSON prüfen, Schema prüfen, Artikelnummer gegen den Stamm abgleichen.
  */
-export function kiAntwortValidieren(text: string, stammNummern: string[]): ValidierungsErgebnis {
+export interface StammEintrag {
+  nr: string
+  barcode?: string | null
+}
+
+export function kiAntwortValidieren(text: string, stammRoh: (string | StammEintrag)[]): ValidierungsErgebnis {
+  const stamm: StammEintrag[] = stammRoh.map((x) => (typeof x === 'string' ? { nr: x } : x))
+  const nummern = stamm.map((a) => a.nr)
   let roh: unknown
   try {
     roh = jsonExtrahieren(text)
@@ -181,15 +212,23 @@ export function kiAntwortValidieren(text: string, stammNummern: string[]): Valid
     return { ok: false, fehler: `Schema verletzt: ${details}` }
   }
   const e = { ...p.data }
+  const hinweis = (t: string) => (e.hinweise = [e.hinweise, t].filter(Boolean).join(' '))
   if (e.artikel_match !== null) {
     const nr = e.artikel_match.trim()
-    if (!stammNummern.includes(nr)) {
-      e.hinweise = [e.hinweise, `Die genannte Artikelnummer "${nr}" ist nicht im Artikelstamm und wurde verworfen.`]
-        .filter(Boolean)
-        .join(' ')
+    if (!nummern.includes(nr)) {
+      hinweis(`Die genannte Artikelnummer "${nr}" ist nicht im Artikelstamm und wurde verworfen.`)
       e.artikel_match = null
       if (e.konfidenz === 'hoch') e.konfidenz = 'mittel'
     } else e.artikel_match = nr
+  }
+  // abgelesene Barcode Nummern mit dem Stamm abgleichen (Barcode oder Artikelnummer)
+  if (e.artikel_match === null && e.barcode_nummern.length) {
+    const norm = (s: string) => s.replace(/\s+/g, '')
+    const treffer = stamm.find((a) => e.barcode_nummern.some((b) => norm(b) === norm(a.barcode ?? '') || norm(b) === norm(a.nr)))
+    if (treffer) {
+      e.artikel_match = treffer.nr
+      hinweis(`Artikel über abgelesene Nummer zugeordnet.`)
+    }
   }
   return { ok: true, ergebnis: e }
 }

@@ -203,7 +203,11 @@ export function createLokalRepo(): DataRepo {
 
     onPositionen(inventurId, cb) {
       return abonnieren(() =>
-        cb([...(store().positionen[inventurId] ?? [])].sort((a, b) => b.erstelltAm - a.erstelltAm)),
+        cb(
+          [...(store().positionen[inventurId] ?? [])]
+            .map((p) => ({ ...p, palettenNummer: p.palettenNummer ?? '', charge: p.charge ?? '' }))
+            .sort((a, b) => b.erstelltAm - a.erstelltAm),
+        ),
       )
     },
     async positionAnlegen(inventurId, positionId, e) {

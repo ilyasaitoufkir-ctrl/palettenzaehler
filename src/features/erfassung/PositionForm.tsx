@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { AlertTriangle, Barcode, ChevronRight, Info, Package, Search, Sparkles } from 'lucide-react'
+import { AlertTriangle, Barcode, ChevronRight, Info, Package, Plus, Search, Sparkles } from 'lucide-react'
 import type { Artikel, Konfidenz, PositionEingabe } from '../../types'
 import { berechneMenge, kiWeichtAb, parseZahl } from '../../lib/utils/menge'
 import { KonfidenzBadge, Sheet, Spinner, ZahlFeld } from '../../components/ui'
@@ -14,6 +14,16 @@ export interface PositionStart {
   stueckProLage: number | null
   fehlend: number | null
   lagerplatz: string
+  palettenNummer: string
+  charge: string
+}
+
+/** Vorschlag für einen neuen Artikel aus dem, was die KI erkannt hat */
+export interface ArtikelVorschlag {
+  bezeichnung: string
+  gebindeart: string
+  stueckProLage: number | null
+  barcode: string | null
 }
 
 export interface KiAnzeige {
@@ -23,6 +33,8 @@ export interface KiAnzeige {
   etikett: string | null
   beschreibung: string
   barcodeTreffer: string | null
+  produkt: string
+  barcodeNummern: string[]
 }
 
 const t = (n: number | null) => (n === null ? '' : String(n))
@@ -36,6 +48,7 @@ export function PositionForm({
   submitText,
   onSubmit,
   zusatz,
+  onNeuerArtikel,
 }: {
   artikel: Artikel[]
   start: PositionStart
@@ -46,6 +59,8 @@ export function PositionForm({
   submitText: string
   onSubmit: (e: PositionEingabe) => Promise<void> | void
   zusatz?: React.ReactNode
+  /** legt aus dem KI Vorschlag einen Artikel an und liefert dessen ID */
+  onNeuerArtikel?: (v: ArtikelVorschlag) => Promise<string>
 }) {
   const [artikelId, setArtikelId] = useState(start.artikelId)
   const [freiBez, setFreiBez] = useState(start.bezeichnung)
@@ -53,6 +68,9 @@ export function PositionForm({
   const [spl, setSpl] = useState(t(start.stueckProLage))
   const [fehlend, setFehlend] = useState(t(start.fehlend ?? 0))
   const [lagerplatz, setLagerplatz] = useState(start.lagerplatz)
+  const [palettenNummer, setPalettenNummer] = useState(start.palettenNummer)
+  const [charge, setCharge] = useState(start.charge)
+  const [legtAn, setLegtAn] = useState(false)
   const [pickerOffen, setPickerOffen] = useState(false)
   const [q, setQ] = useState('')
   const [sendet, setSendet] = useState(false)
@@ -89,6 +107,8 @@ export function PositionForm({
         kiGesamt: ki?.gesamt ?? null,
         kiHinweise: ki?.hinweise ?? '',
         etikettText: ki?.etikett ?? null,
+        palettenNummer: palettenNummer.trim(),
+        charge: charge.trim(),
       })
     } finally {
       setSendet(false)
@@ -113,7 +133,13 @@ export function PositionForm({
             </span>
             <KonfidenzBadge wert={ki.konfidenz} mitLabel />
           </div>
+          {ki.produkt && <p className="text-lg leading-tight font-semibold">{ki.produkt}</p>}
           <p className="text-sm">{ki.beschreibung}</p>
+          {ki.barcodeNummern.length > 0 && (
+            <p className="inline-flex flex-wrap items-center gap-2 text-sm text-ink-2">
+              <Barcode className="size-4" /> Abgelesen: {ki.barcodeNummern.join(', ')}
+            </p>
+          )}
           {ki.etikett && (
             <p className="text-sm text-ink-2">
               <span className="font-semibold text-ink">Etikett:</span> {ki.etikett}
@@ -121,7 +147,7 @@ export function PositionForm({
           )}
           {ki.barcodeTreffer && (
             <p className="inline-flex items-center gap-2 text-sm text-ok">
-              <Barcode className="size-4" /> Barcode erkannt: {ki.barcodeTreffer}
+              <Barcode className="size-4" /> Artikel über Barcode erkannt: {ki.barcodeTreffer}
             </p>
           )}
           {ki.hinweise && (
@@ -156,14 +182,39 @@ export function PositionForm({
           <ChevronRight className="size-5 text-ink-3" />
         </button>
         {!gewaehlt && (
-          <input
-            className="field mt-2"
-            placeholder="Oder Bezeichnung frei eingeben"
-            value={freiBez}
-            maxLength={160}
-            onChange={(e) => setFreiBez(e.target.value)}
-            aria-label="Freie Bezeichnung"
-          />
+          <div className="mt-2 flex flex-col gap-2">
+            <input
+              className="field"
+              placeholder="Bezeichnung, z. B. Chlor flüssig"
+              value={freiBez}
+              maxLength={160}
+              onChange={(e) => setFreiBez(e.target.value)}
+              aria-label="Freie Bezeichnung"
+            />
+            {onNeuerArtikel && freiBez.trim() && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={legtAn}
+                onClick={async () => {
+                  setLegtAn(true)
+                  try {
+                    const id = await onNeuerArtikel({
+                      bezeichnung: freiBez.trim(),
+                      gebindeart: start.gebindeart,
+                      stueckProLage: parseZahl(spl) || null,
+                      barcode: ki?.barcodeNummern[0] ?? null,
+                    })
+                    setArtikelId(id)
+                  } finally {
+                    setLegtAn(false)
+                  }
+                }}
+              >
+                {legtAn ? <Spinner /> : <Plus className="size-5" />} Als neuen Artikel anlegen
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -176,6 +227,21 @@ export function PositionForm({
             Lagerplatz
           </label>
           <input id="pos-platz" className="field min-h-[58px]" placeholder="z. B. A-01-2" value={lagerplatz} maxLength={40} onChange={(e) => setLagerplatz(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2 min-w-0">
+          <label className="label" htmlFor="pos-palette">
+            Palettennummer
+          </label>
+          <input id="pos-palette" className="field" placeholder="Palettenschein, NVE" value={palettenNummer} maxLength={64} onChange={(e) => setPalettenNummer(e.target.value)} />
+        </div>
+        <div className="min-w-0">
+          <label className="label" htmlFor="pos-charge">
+            Charge
+          </label>
+          <input id="pos-charge" className="field" placeholder="Charge oder Lot" value={charge} maxLength={64} onChange={(e) => setCharge(e.target.value)} />
         </div>
       </div>
 

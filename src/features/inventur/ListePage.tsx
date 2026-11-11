@@ -38,7 +38,7 @@ export function ListePage() {
         if (filter === 'ohne' && p.artikelnummer) return false
         if (filter === 'manuell' && p.konfidenz !== 'manuell') return false
         if (!s) return true
-        return [p.artikelnummer, p.bezeichnung, p.lagerplatz, p.gebindeart, p.erstelltVon].some((f) => f.toLowerCase().includes(s))
+        return [p.artikelnummer, p.bezeichnung, p.lagerplatz, p.gebindeart, p.erstelltVon, p.palettenNummer, p.charge].some((f) => f.toLowerCase().includes(s))
       })
       .sort(SORT[sortierung].fn)
   }, [positionen, q, filter, sortierung])
@@ -163,7 +163,7 @@ export function ListePage() {
             <label className="relative min-w-0 flex-1">
               <span className="sr-only">Positionen suchen</span>
               <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-3" />
-              <input className="field pl-12" type="search" placeholder="Artikel, Lagerplatz, Nutzer" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="field pl-12" type="search" placeholder="Artikel, Palette, Charge, Platz" value={q} onChange={(e) => setQ(e.target.value)} />
             </label>
             <label className="relative">
               <span className="sr-only">Sortierung</span>
@@ -228,6 +228,8 @@ export function ListePage() {
                         <p className="truncate font-semibold">{p.bezeichnung || 'Ohne Artikel'}</p>
                         <p className="truncate text-xs text-ink-2">
                           {p.artikelnummer || 'keine Nr.'} · {p.gebindeart || 'Gebinde ?'}
+                          {p.palettenNummer ? ` · Pal. ${p.palettenNummer}` : ''}
+                          {p.charge ? ` · Ch. ${p.charge}` : ''}
                         </p>
                         <p className="truncate text-xs text-ink-3">
                           {p.lagerplatz || 'ohne Platz'} · {zeitRelativ(p.erstelltAm)} · {p.erstelltVon}

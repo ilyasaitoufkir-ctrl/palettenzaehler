@@ -227,6 +227,8 @@ export async function createArtifactRepo(): Promise<DataRepo> {
           kiGesamt: numN(d.kiGesamt),
           kiHinweise: str(d.kiHinweise),
           etikettText: str(d.etikettText) || null,
+          palettenNummer: str(d.palettenNummer),
+          charge: str(d.charge),
           fotoUrls: Array.isArray(d.fotoUrls) ? d.fotoUrls.filter((u): u is string => typeof u === 'string') : [],
           erstelltVon: str(d.erstelltVon),
           erstelltVonUid: str(d.erstelltVonUid),

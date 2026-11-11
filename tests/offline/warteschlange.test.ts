@@ -13,6 +13,10 @@ const ergebnis: ErkennungsErgebnis = {
     beschreibung: 'Kanister',
     gebindeart: 'Kanister',
     etikett_text: null,
+    produkt: '',
+    paletten_nummer: null,
+    barcode_nummern: [],
+    charge: null,
     stueck_pro_lage: 10,
     lagen: 3,
     fehlende_stueck: 0,
@@ -37,7 +41,7 @@ const eingabe: PositionEingabe = {
   quelle: 'ki',
   kiGesamt: 30,
   kiHinweise: '',
-  etikettText: null,
+  etikettText: null, palettenNummer: '', charge: '',
 }
 
 function eintrag(id: string, status: QueueEintrag['status'] = 'wartet'): QueueEintrag {

@@ -69,6 +69,33 @@ describe('kiAntwortValidieren', () => {
   })
 })
 
+describe('Etikett, Palettennummer und Barcode', () => {
+  it('übernimmt Produkt, Palettennummer, Charge und Barcode Nummern', () => {
+    const r = kiAntwortValidieren(
+      JSON.stringify({ ...gueltig, artikel_match: null, produkt: ' Chlor flüssig ', paletten_nummer: 340123450000012345, charge: 'L-2311', barcode_nummern: ['4000 0001 0025 9', ''] }),
+      stamm,
+    )
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.ergebnis).toMatchObject({ produkt: 'Chlor flüssig', charge: 'L-2311', barcode_nummern: ['4000000100259'] })
+  })
+  it('ordnet Artikel über abgelesenen Barcode zu', () => {
+    const r = kiAntwortValidieren(JSON.stringify({ ...gueltig, artikel_match: null, barcode_nummern: ['4000000100259'] }), [
+      { nr: 'D-10005', barcode: '4000000100051' },
+      { nr: 'D-10025', barcode: '4000000100259' },
+    ])
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.ergebnis.artikel_match).toBe('D-10025')
+      expect(r.ergebnis.hinweise).toMatch(/zugeordnet/)
+    }
+  })
+  it('alte Antworten ohne neue Felder bleiben gültig', () => {
+    const r = kiAntwortValidieren(JSON.stringify(gueltig), stamm)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.ergebnis).toMatchObject({ produkt: '', paletten_nummer: null, barcode_nummern: [], charge: null })
+  })
+})
+
 describe('Anfrage und Bildprüfung', () => {
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]).toString('base64')
   it('max. drei Bilder', () => {

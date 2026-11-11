@@ -49,6 +49,7 @@ export function createApiRecognizer(repo: DataRepo): RecognizePallet {
         bez: a.bezeichnung.slice(0, 160),
         gebinde: [a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ').slice(0, 80),
         stueckProLage: a.stueckProLage,
+        barcode: a.barcode,
       })),
     })
 
@@ -106,8 +107,9 @@ export function createArtifactRecognizer(): RecognizePallet {
       bez: a.bezeichnung.slice(0, 160),
       gebinde: [a.gebindeart, a.gebindegroesse].filter(Boolean).join(' ').slice(0, 80),
       stueckProLage: a.stueckProLage,
+      barcode: a.barcode,
     }))
-    const nummern = stamm.map((a) => a.nr)
+    const nummern = stamm.map((a) => ({ nr: a.nr, barcode: a.barcode }))
     const [barcode] = await Promise.all([barcodeTeil(bilder, artikel)])
     const prompt = `${SYSTEM_PROMPT}\n\n${nutzerText(stamm)}`
 

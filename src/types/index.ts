@@ -61,6 +61,10 @@ export interface Position {
   kiGesamt: number | null
   kiHinweise: string
   etikettText: string | null
+  /** abgelesene Palettennummer (Palettenschein, NVE/SSCC) */
+  palettenNummer: string
+  /** abgelesene oder eingetragene Charge/Lot */
+  charge: string
   fotoUrls: string[]
   erstelltVon: string
   erstelltVonUid: string
@@ -80,6 +84,10 @@ export interface KiErgebnis {
   beschreibung: string
   gebindeart: string
   etikett_text: string | null
+  produkt: string
+  paletten_nummer: string | null
+  barcode_nummern: string[]
+  charge: string | null
   stueck_pro_lage: number | null
   lagen: number | null
   fehlende_stueck: number

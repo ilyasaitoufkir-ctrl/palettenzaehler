@@ -34,12 +34,15 @@ export function BestaetigenPage() {
     return {
       artikelId: a?.id ?? null,
       artikelnummer: a?.artikelnummer ?? '',
-      bezeichnung: a ? a.bezeichnung : '',
+      // erkanntes Produkt (z. B. Chlor flüssig) als Bezeichnung vorschlagen
+      bezeichnung: a ? a.bezeichnung : ki?.produkt || '',
       gebindeart: ki?.gebindeart ?? '',
       lagen: ki?.lagen ?? null,
       stueckProLage: ki?.stueck_pro_lage ?? a?.stueckProLage ?? null,
       fehlend: ki?.fehlende_stueck ?? 0,
       lagerplatz: '',
+      palettenNummer: ki?.paletten_nummer ?? '',
+      charge: ki?.charge ?? '',
     }
     // nur beim ersten Ergebnis vorbelegen
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,7 +70,10 @@ export function BestaetigenPage() {
         hinweise: ki.hinweise,
         etikett: ki.etikett_text,
         beschreibung: ki.beschreibung,
-        barcodeTreffer: eintrag.ergebnis?.barcodeArtikelnummer ?? null,
+        barcodeTreffer:
+          eintrag.ergebnis?.barcodeArtikelnummer ?? (ki.artikel_match && /Nummer zugeordnet/.test(ki.hinweise) ? ki.artikel_match : null),
+        produkt: ki.produkt ?? '',
+        barcodeNummern: ki.barcode_nummern ?? [],
       }
     : null
 
@@ -89,6 +95,14 @@ export function BestaetigenPage() {
         </Link>
       </div>
     )
+  }
+
+  /** einfache fortlaufende Nummer für neu angelegte Artikel, z. B. NEU-001 */
+  const freieArtikelnummer = async () => {
+    let i = artikel.length + 1
+    const belegt = new Set(artikel.map((a) => a.artikelnummer))
+    while (belegt.has(`NEU-${String(i).padStart(3, '0')}`)) i++
+    return `NEU-${String(i).padStart(3, '0')}`
   }
 
   const bestaetigen = async (e: Parameters<typeof positionBestaetigen>[2]) => {
@@ -115,6 +129,21 @@ export function BestaetigenPage() {
           fotos={fotos}
           submitText="Position bestätigen"
           onSubmit={bestaetigen}
+          onNeuerArtikel={async (v) => {
+            const nr = await freieArtikelnummer()
+            const id = await repo.artikelSpeichern(null, {
+              artikelnummer: nr,
+              bezeichnung: v.bezeichnung,
+              gebindeart: v.gebindeart,
+              gebindegroesse: '',
+              stueckProLage: v.stueckProLage,
+              lagenProPalette: null,
+              barcode: v.barcode,
+              sollbestand: null,
+            })
+            toast(`Artikel ${nr} angelegt. Nummer kannst du im Artikelstamm ändern.`)
+            return id
+          }}
         />
       </>
     )
