@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { Boxes, LogIn } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Spinner } from '../../components/ui'
+import { KI_ECHT } from '../../lib/config'
 
 function meldung(code: string | undefined): string {
   switch (code) {
@@ -27,7 +28,7 @@ export function LoginPage() {
   const { repo, auth } = useApp()
   const ort = useLocation()
   const [email, setEmail] = useState(repo.demo ? 'demo@beispiel.de' : '')
-  const [passwort, setPasswort] = useState(repo.demo ? 'demo' : '')
+  const [passwort, setPasswort] = useState(repo.demo && !KI_ECHT ? 'demo' : '')
   const [laeuft, setLaeuft] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -77,20 +78,22 @@ export function LoginPage() {
 
       {repo.demo && (
         <div className="mb-5 rounded-[14px] bg-info-soft px-4 py-3 text-sm text-info">
-          Demo Modus: Anmeldung mit beliebiger E-Mail. Alle Daten bleiben in diesem Browser.
+          {KI_ECHT
+            ? 'Melde dich mit deinem Namen oder deiner E-Mail und dem Zugangscode an. Die Inventurdaten bleiben auf diesem Gerät.'
+            : 'Demo Modus: Anmeldung mit beliebiger E-Mail. Alle Daten bleiben in diesem Browser.'}
         </div>
       )}
 
       <form onSubmit={absenden} className="flex flex-col gap-4" noValidate>
         <div>
           <label className="label" htmlFor="login-email">
-            E-Mail
+            {repo.demo && KI_ECHT ? 'Name oder E-Mail' : 'E-Mail'}
           </label>
-          <input id="login-email" className="field" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input id="login-email" className="field" type={repo.demo && KI_ECHT ? 'text' : 'email'} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <div>
           <label className="label" htmlFor="login-pw">
-            Passwort
+            {repo.demo && KI_ECHT ? 'Zugangscode' : 'Passwort'}
           </label>
           <input
             id="login-pw"

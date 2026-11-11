@@ -18,4 +18,10 @@ export const PLATTFORM: 'web' | 'artifact' = env.VITE_PLATTFORM === 'artifact' ?
  * Demo Modus: läuft ohne Firebase und ohne KI Schlüssel.
  * Aktiv, wenn keine Firebase Konfiguration vorhanden ist oder VITE_DEMO_MODE=true gesetzt ist.
  */
+/**
+ * Echte KI ohne Firebase: Daten bleiben lokal, die Bilderkennung läuft über /api/analyze,
+ * geschützt durch den Zugangscode (APP_ZUGANGSCODE auf dem Server).
+ */
+export const KI_ECHT = env.VITE_KI_ECHT === 'true'
+
 export const DEMO_MODUS = env.VITE_DEMO_MODE === 'true' || !firebaseVollstaendig

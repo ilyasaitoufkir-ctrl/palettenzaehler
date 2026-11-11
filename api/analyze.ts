@@ -4,6 +4,7 @@
  * prüft das Firebase ID Token und lässt die Bilder von Claude (Vision) auswerten.
  * Der API Schlüssel liegt ausschließlich serverseitig in ANTHROPIC_API_KEY.
  */
+import { timingSafeEqual } from 'node:crypto'
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
@@ -34,7 +35,22 @@ function admin(): App {
   return adminApp
 }
 
+/** Zeitkonstanter Vergleich, damit der Code nicht über Antwortzeiten erraten werden kann */
+function gleich(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+
 async function tokenPruefen(token: string): Promise<string> {
+  // Variante ohne Firebase: gemeinsamer Zugangscode aus APP_ZUGANGSCODE
+  if (token.startsWith('code:')) {
+    const soll = process.env.APP_ZUGANGSCODE
+    if (!soll) throw new HttpFehler(500, 'Server nicht konfiguriert (APP_ZUGANGSCODE fehlt).')
+    if (soll.length < 8) throw new HttpFehler(500, 'APP_ZUGANGSCODE ist zu kurz (mindestens 8 Zeichen).')
+    if (!gleich(token.slice(5), soll)) throw new HttpFehler(401, 'Zugangscode ist falsch.')
+    return 'code'
+  }
   const app = admin()
   const decoded = await getAuth(app).verifyIdToken(token)
   const profil = await getFirestore(app).collection('users').doc(decoded.uid).get()

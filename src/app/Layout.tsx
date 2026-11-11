@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Boxes, Camera, ClipboardList, LayoutGrid, LogOut, Monitor, Moon, Package, Sun, WifiOff } from 'lucide-react'
 import { useApp } from './AppContext'
 import { useTheme } from '../hooks/useTheme'
+import { KI_ECHT } from '../lib/config'
 import { demoZuruecksetzen } from '../lib/data/demoRepo'
 
 const NAV = [
@@ -27,8 +28,8 @@ export function Layout() {
       >
         {repo.demo && (
           <div className="flex items-center justify-between gap-2 bg-info-soft px-4 py-1.5 text-xs font-medium text-info">
-            <span>Demo Modus: Beispieldaten, KI Erkennung simuliert</span>
-            <button
+            <span>{KI_ECHT ? 'Echte KI Erkennung, Daten nur auf diesem Gerät' : 'Demo Modus: Beispieldaten, KI Erkennung simuliert'}</span>
+            {!KI_ECHT && <button
               className="underline underline-offset-2"
               onClick={() => {
                 demoZuruecksetzen()
@@ -36,7 +37,7 @@ export function Layout() {
               }}
             >
               Zurücksetzen
-            </button>
+            </button>}
           </div>
         )}
         <div className="flex items-center gap-2 px-4 py-2.5">

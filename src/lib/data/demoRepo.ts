@@ -1,6 +1,7 @@
 import type { Artikel, Inventur, Position } from '../../types'
 import { bildOptimieren, blobZuDataUrl } from '../utils/bild'
 import { neueId } from '../utils/id'
+import { KI_ECHT } from '../config'
 import type { AuthZustand, DataRepo } from './repo'
 
 /**
@@ -10,6 +11,8 @@ import type { AuthZustand, DataRepo } from './repo'
 
 const KEY = 'pz-demo-v1'
 const AUTH_KEY = 'pz-demo-auth'
+const CODE_KEY = 'pz-zugangscode'
+let codeOhneSpeicher: string | null = null
 
 interface Store {
   inventuren: Inventur[]
@@ -20,6 +23,8 @@ interface Store {
 const TAG = 24 * 60 * 60 * 1000
 
 function seed(): Store {
+  // echte KI: ohne Beispieldaten starten
+  if (KI_ECHT) return { inventuren: [], artikel: [], positionen: {} }
   const jetzt = Date.now()
   const a = (
     id: string,
@@ -191,9 +196,15 @@ export function createDemoRepo(): DataRepo {
       }
     },
     async login(mail, passwort) {
-      if (!mail.includes('@')) throw Object.assign(new Error('E-Mail ungültig'), { code: 'auth/invalid-email' })
+      if (!KI_ECHT && !mail.includes('@')) throw Object.assign(new Error('E-Mail ungültig'), { code: 'auth/invalid-email' })
       if (!passwort) throw Object.assign(new Error('Passwort fehlt'), { code: 'auth/missing-password' })
       await verzoegert(null, 300)
+      codeOhneSpeicher = passwort
+      try {
+        localStorage.setItem(CODE_KEY, passwort)
+      } catch {
+        /* nur im Speicher */
+      }
       try {
         localStorage.setItem(AUTH_KEY, mail.trim())
       } catch {
@@ -203,7 +214,9 @@ export function createDemoRepo(): DataRepo {
     },
     async logout() {
       angemeldetOhneSpeicher = null
+      codeOhneSpeicher = null
       try {
+        localStorage.removeItem(CODE_KEY)
         localStorage.removeItem(AUTH_KEY)
       } catch {
         /* egal */
@@ -214,7 +227,14 @@ export function createDemoRepo(): DataRepo {
       await verzoegert(null, 300)
     },
     async idToken() {
-      return null
+      // im Modus "echte KI ohne Firebase" dient der Zugangscode als Token
+      let code = codeOhneSpeicher
+      try {
+        code = localStorage.getItem(CODE_KEY) ?? code
+      } catch {
+        /* egal */
+      }
+      return code ? 'code:' + code : null
     },
 
     onInventuren(cb) {
