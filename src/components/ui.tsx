@@ -27,7 +27,7 @@ export function KonfidenzBadge({ wert, mitLabel = false }: { wert: PositionsKonf
 export function Leer({ icon, titel, text, aktion }: { icon: ReactNode; titel: string; text: string; aktion?: ReactNode }) {
   return (
     <div className="card flex flex-col items-center gap-3 px-6 py-10 text-center">
-      <div className="grid size-14 place-items-center rounded-2xl bg-accent-soft text-accent">{icon}</div>
+      <div className="grid size-14 place-items-center rounded-2xl bg-[linear-gradient(180deg,var(--c-accent-soft),var(--c-surface-2))] text-accent ring-1 ring-line">{icon}</div>
       <div>
         <p className="font-semibold">{titel}</p>
         <p className="mt-1 text-sm text-ink-2">{text}</p>

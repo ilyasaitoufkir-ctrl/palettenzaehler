@@ -67,24 +67,26 @@ export function LoginPage() {
 
   return (
     <div
-      className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center py-10"
+      className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 py-8"
       style={{ paddingLeft: 'max(20px, env(safe-area-inset-left, 0px))', paddingRight: 'max(20px, env(safe-area-inset-right, 0px))' }}
     >
-      <div className="mb-8">
-        <div className="mb-5 grid size-14 place-items-center rounded-2xl bg-brand text-accent-ink">
+      <div className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(160deg,#ffae4d_0%,var(--c-brand)_45%,#d96400_100%)] px-6 pt-8 pb-7 text-white shadow-[0_24px_48px_-20px_rgb(239_125_0/0.7),inset_0_1px_0_rgb(255_255_255/0.35)]">
+        <div className="pointer-events-none absolute -top-16 -right-12 size-56 rounded-full bg-white/15 blur-2xl" aria-hidden />
+        <div className="relative grid size-14 place-items-center rounded-2xl bg-white/20 ring-1 ring-white/30 backdrop-blur">
           <Boxes className="size-7" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Palettenzähler</h1>
-        <p className="mt-2 text-ink-2">Paletten fotografieren, Menge prüfen, Inventur fertig.</p>
+        <p className="relative mt-6 text-[0.6875rem] font-semibold tracking-[0.14em] uppercase text-white/80">Lager Inventur</p>
+        <h1 className="relative mt-1 text-[1.875rem] leading-tight font-semibold tracking-tight">Palettenzähler</h1>
+        <p className="relative mt-2 text-sm leading-relaxed text-white/85">Paletten fotografieren, Menge prüfen, Inventur fertig.</p>
       </div>
 
       {lokal && (
-        <div className="mb-5 rounded-[14px] bg-accent-soft px-4 py-3 text-sm text-ink-2">
+        <div className="-mt-2 rounded-[14px] bg-surface-2 px-4 py-3 text-sm text-ink-2">
           Melde dich mit deinem Namen und dem Zugangscode an. Die Inventurdaten werden auf diesem Gerät gespeichert.
         </div>
       )}
 
-      <form onSubmit={absenden} className="flex flex-col gap-4" noValidate>
+      <form onSubmit={absenden} className="card-raised flex flex-col gap-4 p-5" noValidate>
         <div>
           <label className="label" htmlFor="login-email">
             {lokal ? 'Name' : 'E-Mail'}
@@ -121,7 +123,7 @@ export function LoginPage() {
           </button>
         )}
       </form>
-      {!lokal && <p className="mt-8 text-center text-xs text-ink-3">Konten werden von der Administration angelegt und freigeschaltet.</p>}
+      {!lokal && <p className="text-center text-xs text-ink-3">Konten werden von der Administration angelegt und freigeschaltet.</p>}
     </div>
   )
 }

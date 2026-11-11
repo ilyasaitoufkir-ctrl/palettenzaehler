@@ -120,6 +120,8 @@ body {
 
 body {
   min-height: 100dvh;
+  background-image: radial-gradient(900px 380px at 50% -160px, rgb(239 125 0 / 0.11), transparent 70%);
+  background-repeat: no-repeat;
 }
 
 h1,
