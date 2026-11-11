@@ -26,37 +26,57 @@ export function zeitstempelDe(ms: number): string {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+/** Barcode des Artikels, über Artikel ID oder Artikelnummer gefunden */
+export function barcodeFuer(p: Position, artikel: Artikel[]): string {
+  const a = (p.artikelId && artikel.find((x) => x.id === p.artikelId)) || artikel.find((x) => p.artikelnummer && x.artikelnummer === p.artikelnummer)
+  return a?.barcode ?? ''
+}
+
 export const INVENTUR_SPALTEN = [
   'Artikelnummer',
+  'Artikel Barcode',
   'Bezeichnung',
   'Gebindeart',
+  'Lagen',
+  'Stück pro Lage',
+  'Fehlend',
   'Menge',
+  'Soll Bestand',
+  'Differenz',
   'Lagerplatz',
+  'Lagerplatz laut Bestand',
   'Palettennummer',
   'Charge',
   'Konfidenz',
-  'Zeitstempel',
-  'Nutzer',
   'Prüfung',
+  'Zeitstempel',
+  'Erfasst von',
   'Nachgezählt von',
 ]
 
-export function inventurCsv(positionen: Position[]): string {
+export function inventurCsv(positionen: Position[], artikel: Artikel[] = []): string {
   const sortiert = [...positionen].sort((a, b) => a.erstelltAm - b.erstelltAm)
   return csvAusZeilen(
     INVENTUR_SPALTEN,
     sortiert.map((p) => [
       p.artikelnummer,
+      barcodeFuer(p, artikel),
       p.bezeichnung,
       p.gebindeart,
+      p.lagen,
+      p.stueckProLage,
+      p.fehlend,
       p.menge,
+      p.sollMenge ?? '',
+      p.sollMenge === null ? '' : p.menge - p.sollMenge,
       p.lagerplatz,
+      p.lagerplatzLaut,
       p.palettenNummer,
       p.charge,
       p.konfidenz,
+      p.pruefStatus === 'offen' ? 'Nachzählung offen' : p.pruefStatus === 'geprueft' ? 'nachgezählt' : 'nicht nötig',
       zeitstempelDe(p.erstelltAm),
       p.erstelltVon,
-      p.pruefStatus === 'offen' ? 'Nachzählung offen' : p.pruefStatus === 'geprueft' ? 'nachgezählt' : 'nicht nötig',
       p.geprueftVon,
     ]),
   )

@@ -33,8 +33,8 @@ describe('CSV Export', () => {
   it('beginnt mit UTF-8 BOM und nutzt Semikolon', () => {
     const csv = inventurCsv([pos({})])
     expect(csv.startsWith(CSV_BOM)).toBe(true)
-    expect(csv.slice(1).split('\r\n')[0]).toBe('Artikelnummer;Bezeichnung;Gebindeart;Menge;Lagerplatz;Palettennummer;Charge;Konfidenz;Zeitstempel;Nutzer;Prüfung;Nachgezählt von')
-    expect(csv).toContain('A-1;Öl;Kanister 5 l;1;A1;;;hoch;11.11.2026 09:05;a@b.de;nicht nötig;')
+    expect(csv.slice(1).split('\r\n')[0]).toBe('Artikelnummer;Artikel Barcode;Bezeichnung;Gebindeart;Lagen;Stück pro Lage;Fehlend;Menge;Soll Bestand;Differenz;Lagerplatz;Lagerplatz laut Bestand;Palettennummer;Charge;Konfidenz;Prüfung;Zeitstempel;Erfasst von;Nachgezählt von')
+    expect(csv).toContain('A-1;;Öl;Kanister 5 l;1;1;0;1;;;A1;;;;hoch;nicht nötig;11.11.2026 09:05;a@b.de;')
   })
   it('erhält Umlaute', () => {
     expect(inventurCsv([pos({ bezeichnung: 'Pfefferminzöl Größe ß' })])).toContain('Pfefferminzöl Größe ß')
@@ -47,7 +47,7 @@ describe('CSV Export', () => {
     expect(csv).toContain('"Aroma; ""Spezial""\nneu"')
     // Rundreise: der Parser liest es identisch zurück
     const zeilen = parseCsv(csv)
-    expect(zeilen[1][1]).toBe('Aroma; "Spezial"\nneu')
+    expect(zeilen[1][2]).toBe('Aroma; "Spezial"\nneu')
   })
   it('verhindert Formel Injection, lässt negative Zahlen in Ruhe', () => {
     expect(csvFeld('=SUMME(A1)')).toBe("'=SUMME(A1)")

@@ -40,7 +40,7 @@ export function DashboardPage() {
         <p className="eyebrow">Aktive Inventur</p>
         <h1 className="mt-1 text-[1.625rem] leading-tight font-bold tracking-tight">{aktiveInventur.name}</h1>
         <p className="mt-1 text-sm text-ink-2">
-          {aktiveInventur.lagerort} · {new Date(aktiveInventur.datum).toLocaleDateString('de-DE')}
+          {[aktiveInventur.lagerort, aktiveInventur.datum && new Date(aktiveInventur.datum).toLocaleDateString('de-DE')].filter(Boolean).join(' · ')}
           {aktiveInventur.status === 'abgeschlossen' && ' · abgeschlossen'}
         </p>
       </div>

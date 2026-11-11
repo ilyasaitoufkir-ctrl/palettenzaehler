@@ -21,8 +21,8 @@ describe('Excel Export', () => {
     const ws = wb.getWorksheet('Inventur')!
     expect(ws.getRow(1).getCell(1).value).toBe('Foto')
     expect(ws.getImages().length).toBe(2)
-    const summe = ws.getRow(4).getCell(11).value as { formula: string; result: number }
-    expect(summe.formula).toBe('SUM(K2:K3)')
+    const summe = ws.getRow(4).getCell(12).value as { formula: string; result: number }
+    expect(summe.formula).toBe('SUM(L2:L3)')
     expect(summe.result).toBe(44)
     const si = wb.getWorksheet('Soll-Ist')!
     expect(si.getRow(2).getCell(5).value).toBe(44)

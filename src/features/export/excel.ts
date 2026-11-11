@@ -1,5 +1,5 @@
 import type { Artikel, Inventur, Position } from '../../types'
-import { sollIstAbgleich } from '../../lib/utils/csv'
+import { barcodeFuer, sollIstAbgleich } from '../../lib/utils/csv'
 
 /** exceljs wird erst beim Export geladen, damit die App schnell startet */
 async function excel() {
@@ -65,6 +65,7 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
   ws.columns = [
     ...(fotoSpalte ? [{ header: 'Foto', key: 'foto', width: 16 }] : []),
     { header: 'Artikelnummer', key: 'nr', width: 16 },
+    { header: 'Artikel Barcode', key: 'barcode', width: 18 },
     { header: 'Bezeichnung', key: 'bez', width: 30 },
     { header: 'Gebinde', key: 'gebinde', width: 16 },
     { header: 'Lagerplatz', key: 'platz', width: 12 },
@@ -92,6 +93,7 @@ export async function inventurExcel(inventur: Inventur, positionen: Position[], 
   for (const p of sortiert) {
     const z = ws.addRow({
       nr: p.artikelnummer,
+      barcode: barcodeFuer(p, artikel),
       bez: p.bezeichnung,
       gebinde: p.gebindeart,
       platz: p.lagerplatz,

@@ -287,7 +287,7 @@ export function ListePage() {
             disabled={exportLaeuft}
             onClick={() => {
               if (ansicht === 'abgleich') csvAusgeben(`${basisName}_soll-ist.csv`, sollIstCsv(abgleich))
-              else if (positionen.length) csvAusgeben(`${basisName}.csv`, inventurCsv(positionen))
+              else if (positionen.length) csvAusgeben(`${basisName}.csv`, inventurCsv(positionen, artikel))
               else toast('Noch keine Positionen zum Exportieren.', 'fehler')
               setExportOffen(false)
             }}

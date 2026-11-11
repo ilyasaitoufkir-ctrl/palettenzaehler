@@ -67,11 +67,11 @@ export function Layout() {
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed inset-x-0 bottom-0 z-30 px-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
         aria-label="Hauptnavigation"
       >
-        <div className="mx-auto grid max-w-xl grid-cols-5 items-end px-2">
+        <div className="mx-auto grid max-w-xl grid-cols-5 items-end rounded-[26px] border border-line bg-surface/80 px-1.5 pb-1.5 shadow-[0_18px_40px_-16px_rgb(var(--c-shadow)/0.35)] backdrop-blur-xl">
           {NAV.map((n) => (
             <NavLink
               key={n.to}
@@ -79,7 +79,7 @@ export function Layout() {
               end={n.end}
               className={({ isActive: aktiv }) => {
                 const isActive = aktiv || (n.to === '/artikel' && pathname === '/bestand')
-                return `relative flex min-h-[64px] flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold ${
+                return `relative flex min-h-[62px] flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold ${
                   isActive ? 'text-accent' : 'text-ink-3'
                 }`
               }}
@@ -88,7 +88,7 @@ export function Layout() {
                 const isActive = aktiv || (n.to === '/artikel' && pathname === '/bestand')
                 return n.haupt ? (
                   <>
-                    <span className="-mt-6 grid size-[60px] place-items-center rounded-full bg-brand text-accent-ink shadow-lg ring-4 ring-bg">
+                    <span className="-mt-7 grid size-[62px] place-items-center rounded-full bg-[linear-gradient(180deg,#ff9a2e,var(--c-brand)_60%,#e46f00)] text-accent-ink shadow-[0_14px_26px_-10px_rgb(239_125_0/0.8),inset_0_1px_0_rgb(255_255_255/0.35)] ring-[5px] ring-bg">
                       <n.icon className="size-7" />
                     </span>
                     <span className={isActive ? 'text-accent' : 'text-ink-2'}>{n.label}</span>
@@ -98,7 +98,9 @@ export function Layout() {
                   </>
                 ) : (
                   <>
-                    <n.icon className="size-6" strokeWidth={isActive ? 2.4 : 2} />
+                    <span className={`grid h-8 w-14 place-items-center rounded-2xl transition-colors ${isActive ? 'bg-accent-soft' : ''}`}>
+                      <n.icon className="size-[22px]" strokeWidth={isActive ? 2.3 : 1.9} />
+                    </span>
                     {n.label}
                   </>
                 )

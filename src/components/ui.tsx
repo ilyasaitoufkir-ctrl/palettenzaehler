@@ -168,9 +168,9 @@ export function Bestaetigen({
 
 export function Kennzahl({ wert, label, ton }: { wert: ReactNode; label: string; ton?: 'bad' | 'accent' }) {
   return (
-    <div className="card min-w-0 px-4 py-3">
-      <div className={`tabular text-2xl font-bold ${ton === 'bad' ? 'text-bad' : ton === 'accent' ? 'text-accent' : ''}`}>{wert}</div>
-      <div className="mt-0.5 text-xs font-medium text-ink-2">{label}</div>
+    <div className="card min-w-0 px-4 py-4">
+      <div className={`tabular text-[1.75rem] leading-none font-semibold tracking-tight ${ton === 'bad' ? 'text-bad' : ton === 'accent' ? 'text-accent' : ''}`}>{wert}</div>
+      <div className="mt-2 text-xs font-medium text-ink-2">{label}</div>
     </div>
   )
 }
