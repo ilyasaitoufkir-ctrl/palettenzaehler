@@ -100,7 +100,7 @@ export function createAnalyseHandler(deps: HandlerAbhaengigkeiten) {
         console.error('KI Antwort ungültig:', v.fehler, '| Antwort:', antwort.slice(0, 500))
         return json(502, {
           fehler: 'Die KI hat keine verwertbare Antwort geliefert. Bitte erneut versuchen oder manuell erfassen.',
-          grund: v.fehler.slice(0, 200),
+          grund: (v.fehler + (antwort.trim() ? ` | Antwort begann mit: ${antwort.trim().slice(0, 80)}` : ' | leere Antwort')).slice(0, 260),
         })
       }
       return json(200, { ergebnis: v.ergebnis })

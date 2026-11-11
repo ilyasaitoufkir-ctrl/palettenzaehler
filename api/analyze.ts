@@ -58,32 +58,74 @@ async function tokenPruefen(token: string): Promise<string> {
   return decoded.uid
 }
 
+/** JSON Schema für strukturierte Ausgabe: die API erzwingt damit gültiges JSON */
+const ANTWORT_SCHEMA = {
+  type: 'object',
+  properties: {
+    artikel_match: { type: ['string', 'null'] },
+    beschreibung: { type: 'string' },
+    gebindeart: { type: 'string' },
+    etikett_text: { type: ['string', 'null'] },
+    stueck_pro_lage: { type: ['integer', 'null'] },
+    lagen: { type: ['integer', 'null'] },
+    fehlende_stueck: { type: 'integer' },
+    gesamt_geschaetzt: { type: 'integer' },
+    konfidenz: { type: 'string', enum: ['hoch', 'mittel', 'niedrig'] },
+    hinweise: { type: 'string' },
+  },
+  required: ['artikel_match', 'beschreibung', 'gebindeart', 'etikett_text', 'stueck_pro_lage', 'lagen', 'fehlende_stueck', 'gesamt_geschaetzt', 'konfidenz', 'hinweise'],
+  additionalProperties: false,
+}
+
+let strukturiertMoeglich = true
+
 async function modellAufrufen(system: string, nachrichten: ModellNachricht[]): Promise<string> {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) throw new HttpFehler(500, 'Server nicht konfiguriert (ANTHROPIC_API_KEY fehlt).')
   const modell = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5'
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({ model: modell, max_tokens: 1200, system, messages: nachrichten }),
-    signal: AbortSignal.timeout(50_000),
-  })
+  const senden = (strukturiert: boolean) =>
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: modell,
+        max_tokens: 4000,
+        system,
+        messages: nachrichten,
+        ...(strukturiert ? { output_config: { format: { type: 'json_schema', schema: ANTWORT_SCHEMA } } } : {}),
+      }),
+      signal: AbortSignal.timeout(55_000),
+    })
+
+  let res = await senden(strukturiertMoeglich)
+  if (res.status === 400 && strukturiertMoeglich) {
+    // falls Modell oder API Version die strukturierte Ausgabe nicht annimmt: ohne erneut versuchen
+    console.error('Strukturierte Ausgabe abgelehnt, versuche ohne:', (await res.text().catch(() => '')).slice(0, 300))
+    strukturiertMoeglich = false
+    res = await senden(false)
+  }
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
     console.error('Anthropic API Fehler', res.status, detail.slice(0, 300))
+    if (res.status === 401) throw new HttpFehler(502, 'Der Anthropic API Schlüssel ist ungültig. Bitte in Vercel prüfen.')
+    if (res.status === 404) throw new HttpFehler(502, 'Das eingestellte KI Modell gibt es nicht. Bitte ANTHROPIC_MODEL in Vercel prüfen.')
     if (res.status === 429 || res.status === 529) throw new HttpFehler(503, 'Die KI ist gerade ausgelastet. Bitte gleich erneut versuchen.')
+    if (res.status === 402 || /credit|balance/i.test(detail)) throw new HttpFehler(502, 'Kein Guthaben mehr bei Anthropic. Bitte in der Anthropic Konsole aufladen.')
     throw new HttpFehler(502, 'Die KI ist nicht erreichbar. Bitte erneut versuchen oder manuell erfassen.')
   }
-  const data = (await res.json()) as { content?: { type: string; text?: string }[] }
-  return (data.content ?? [])
+  const data = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string }
+  const text = (data.content ?? [])
     .filter((c) => c.type === 'text')
     .map((c) => c.text ?? '')
     .join('')
+  if (!text) console.error('Leere KI Antwort', data.stop_reason, (data.content ?? []).map((c) => c.type).join(','))
+  if (data.stop_reason === 'refusal') throw new HttpFehler(502, 'Die KI hat die Analyse dieses Fotos abgelehnt. Bitte manuell erfassen.')
+  return text
 }
 
 export const POST = createAnalyseHandler({ tokenPruefen, modellAufrufen })
