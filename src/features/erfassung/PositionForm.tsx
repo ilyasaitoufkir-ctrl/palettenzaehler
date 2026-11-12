@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { useApp } from '../../app/AppContext'
 import { AlertTriangle, Barcode, ChevronRight, Info, MapPin, Package, Plus, Search, Sparkles } from 'lucide-react'
 import type { Artikel, Konfidenz, PositionBasis, PositionEingabe } from '../../types'
 import { berechneMenge, kiWeichtAb, parseZahl } from '../../lib/utils/menge'
@@ -22,6 +23,8 @@ export interface PositionStart {
   sollMenge: number | null
   /** Hinweis, wodurch Palette oder Artikel zugeordnet wurde */
   zuordnung?: string | null
+  ebene?: string
+  identitaetUnklar?: boolean
 }
 
 /** Vorschlag für einen neuen Artikel aus dem, was die KI erkannt hat */
@@ -55,6 +58,7 @@ export function PositionForm({
   onSubmit,
   zusatz,
   onNeuerArtikel,
+  eigeneId,
 }: {
   artikel: Artikel[]
   start: PositionStart
@@ -67,7 +71,10 @@ export function PositionForm({
   zusatz?: React.ReactNode
   /** legt aus dem KI Vorschlag einen Artikel an und liefert dessen ID */
   onNeuerArtikel?: (v: ArtikelVorschlag) => Promise<string>
+  /** ID der Position, die gerade bearbeitet wird, damit sie nicht als Dublette zählt */
+  eigeneId?: string
 }) {
+  const { positionen } = useApp()
   const [artikelId, setArtikelId] = useState(start.artikelId)
   const [freiBez, setFreiBez] = useState(start.bezeichnung)
   const [lagen, setLagen] = useState(t(start.lagen))
@@ -76,6 +83,11 @@ export function PositionForm({
   const [lagerplatz, setLagerplatz] = useState(start.lagerplatz)
   const [palettenNummer, setPalettenNummer] = useState(start.palettenNummer)
   const [charge, setCharge] = useState(start.charge)
+  const [ebene, setEbene] = useState(start.ebene ?? '')
+  const [unklar, setUnklar] = useState(start.identitaetUnklar ?? false)
+  const doppelt = palettenNummer.trim()
+    ? positionen.find((p) => p.palettenNummer.trim() === palettenNummer.trim() && p.id !== eigeneId)
+    : undefined
   const [legtAn, setLegtAn] = useState(false)
   const [pickerOffen, setPickerOffen] = useState(false)
   const [q, setQ] = useState('')
@@ -116,6 +128,8 @@ export function PositionForm({
         palettenNummer: palettenNummer.trim(),
         charge: charge.trim(),
         sollMenge: start.sollMenge,
+        ebene: ebene.trim(),
+        identitaetUnklar: unklar,
       })
     } finally {
       setSendet(false)
@@ -256,6 +270,28 @@ export function PositionForm({
           </label>
           <input id="pos-charge" className="field" placeholder="Charge oder Lot" value={charge} maxLength={64} onChange={(e) => setCharge(e.target.value)} />
         </div>
+      </div>
+
+      {doppelt && (
+        <div className="flex gap-3 rounded-[18px] bg-warn-soft px-4 py-3 text-sm text-warn" role="alert">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <p>
+            Palettennummer {doppelt.palettenNummer} ist schon erfasst (Lagerplatz {doppelt.lagerplatz || 'unbekannt'}). Bitte prüfen, bevor du speicherst.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 items-end gap-3">
+        <div className="min-w-0">
+          <label className="label" htmlFor="pos-ebene">
+            Ebene
+          </label>
+          <input id="pos-ebene" className="field" inputMode="numeric" placeholder="z. B. 5" value={ebene} maxLength={3} onChange={(e) => setEbene(e.target.value.replace(/[^0-9]/g, ''))} />
+        </div>
+        <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[14px] bg-surface-2 px-4 text-sm font-medium">
+          <input type="checkbox" className="size-5" checked={unklar} onChange={(e) => setUnklar(e.target.checked)} />
+          Identität unklar
+        </label>
       </div>
 
       <div className={`rounded-[18px] px-4 py-4 ${ergebnis.menge === null ? 'bg-surface-2' : 'bg-accent-soft'}`} aria-live="polite">

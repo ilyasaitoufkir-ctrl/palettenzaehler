@@ -22,7 +22,7 @@ export function Layout() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col">
       <header
-        className="sticky z-30 border-b border-line bg-bg/90 backdrop-blur"
+        className="no-print sticky z-30 border-b border-line bg-bg/90 backdrop-blur"
         style={{ top: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="flex items-center gap-2 px-4 py-2.5">
@@ -67,7 +67,7 @@ export function Layout() {
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 px-3"
+        className="no-print fixed inset-x-0 bottom-0 z-30 px-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
         aria-label="Hauptnavigation"
       >

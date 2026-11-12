@@ -19,7 +19,7 @@ const pos = (over: Partial<Position>): Position => ({
   kiGesamt: 1,
   kiHinweise: '',
   etikettText: null, palettenNummer: '', charge: '', sollMenge: null,
-  lagerplatzLaut: '', pruefStatus: 'nicht_noetig' as const, geprueftVon: '', geprueftAm: null, protokoll: [], 
+  lagerplatzLaut: '', ebene: '', identitaetUnklar: false, pruefStatus: 'nicht_noetig' as const, geprueftVon: '', geprueftAm: null, protokoll: [], 
   fotoUrls: [],
   erstelltVon: 'a@b.de',
   erstelltVonUid: 'u',

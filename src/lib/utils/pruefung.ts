@@ -6,7 +6,7 @@ import type { Position, PositionEingabe, PositionsKonfidenz, Protokolleintrag, P
  */
 
 /** Felder, die für Protokoll und Änderungsvergleich zählen */
-const FELDER: { key: 'artikelnummer' | 'bezeichnung' | 'lagen' | 'stueckProLage' | 'fehlend' | 'menge' | 'lagerplatz' | 'palettenNummer' | 'charge'; label: string }[] = [
+const FELDER: { key: 'artikelnummer' | 'bezeichnung' | 'lagen' | 'stueckProLage' | 'fehlend' | 'menge' | 'lagerplatz' | 'palettenNummer' | 'charge' | 'ebene' | 'identitaetUnklar'; label: string }[] = [
   { key: 'artikelnummer', label: 'Artikel' },
   { key: 'bezeichnung', label: 'Bezeichnung' },
   { key: 'lagen', label: 'Lagen' },
@@ -16,7 +16,12 @@ const FELDER: { key: 'artikelnummer' | 'bezeichnung' | 'lagen' | 'stueckProLage'
   { key: 'lagerplatz', label: 'Lagerplatz' },
   { key: 'palettenNummer', label: 'Palettennummer' },
   { key: 'charge', label: 'Charge' },
+  { key: 'ebene', label: 'Ebene' },
+  { key: 'identitaetUnklar', label: 'Identität unklar' },
 ]
+
+/** Ab dieser Ebene wird nur gesichtet, nicht gezählt. Ebene 5 entspricht dem obersten Regalfach. */
+export const SICHTPRUEFUNG_AB_EBENE = 5
 
 /** Angaben, aus denen die Prüfregeln abgeleitet werden */
 export interface PruefAngaben {
@@ -25,6 +30,8 @@ export interface PruefAngaben {
   konfidenz: PositionsKonfidenz
   lagerplatz: string
   lagerplatzLaut: string
+  ebene?: string
+  identitaetUnklar?: boolean
 }
 
 const gleichePerson = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
@@ -39,6 +46,8 @@ export function pruefGruende(p: PruefAngaben): string[] {
     g.push(`Lagerplatz weicht vom Bestand ab (Soll ${p.lagerplatzLaut}, Ist ${p.lagerplatz})`)
   }
   if (p.konfidenz === 'niedrig') g.push('KI Konfidenz niedrig')
+  if (p.identitaetUnklar) g.push('Identität unklar, Etikett nicht eindeutig lesbar')
+  if (p.ebene && Number(p.ebene) >= SICHTPRUEFUNG_AB_EBENE) g.push(`Ebene ${p.ebene}, nur Sichtprüfung`)
   return g
 }
 

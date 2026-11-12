@@ -82,6 +82,10 @@ export interface Position {
   sollMenge: number | null
   /** Lagerplatz laut Bestandsliste, leer wenn unbekannt */
   lagerplatzLaut: string
+  /** Ebene im Regal (1 unten), leer wenn unbekannt */
+  ebene: string
+  /** Etikett oder Barcode nicht eindeutig lesbar, Palette nicht sicher identifiziert */
+  identitaetUnklar: boolean
   pruefStatus: PruefStatus
   geprueftVon: string
   geprueftAm: number | null

@@ -1,3 +1,4 @@
+import { BerichtPage } from '../features/bericht/BerichtPage'
 import type { ReactNode } from 'react'
 import { BrowserRouter, MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from './AppContext'
@@ -50,6 +51,7 @@ function Routen() {
         <Route path="/erfassen/:id" element={<BestaetigenPage />} />
         <Route path="/manuell" element={<ManuellPage />} />
         <Route path="/position/:id" element={<PositionBearbeitenPage />} />
+        <Route path="/bericht" element={<BerichtPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

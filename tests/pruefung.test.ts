@@ -17,7 +17,7 @@ describe('pruefGruende', () => {
     expect(pruefGruende({ ...basis, konfidenz: 'niedrig' })).toHaveLength(1)
   })
   it('ohne Bestand keine Mengenprüfung', () => {
-    expect(pruefGruende({ ...basis, sollMenge: null, lagerplatzLaut: '' })).toEqual([])
+    expect(pruefGruende({ ...basis, sollMenge: null, lagerplatzLaut: '', ebene: '', identitaetUnklar: false })).toEqual([])
   })
 })
 

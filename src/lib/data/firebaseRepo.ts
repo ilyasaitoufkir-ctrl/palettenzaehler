@@ -84,6 +84,8 @@ function zuPosition(id: string, inventurId: string, d: DocumentData): Position {
     charge: d.charge ?? '',
     sollMenge: typeof d.sollMenge === 'number' ? d.sollMenge : null,
     lagerplatzLaut: d.lagerplatzLaut ?? '',
+    ebene: typeof d.ebene === 'string' ? d.ebene : '',
+    identitaetUnklar: d.identitaetUnklar === true,
     pruefStatus: d.pruefStatus === 'offen' || d.pruefStatus === 'geprueft' ? d.pruefStatus : 'nicht_noetig',
     geprueftVon: d.geprueftVon ?? '',
     geprueftAm: typeof d.geprueftAm === 'number' ? d.geprueftAm : null,

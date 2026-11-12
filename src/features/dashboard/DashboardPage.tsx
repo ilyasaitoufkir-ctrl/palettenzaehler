@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Boxes, Camera, ChevronRight, ClipboardEdit, Scale } from 'lucide-react'
+import { AlertTriangle, Boxes, Camera, ChevronRight, ClipboardEdit, Printer, Scale } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Kennzahl, KonfidenzBadge, Leer, Seitenkopf } from '../../components/ui'
 import { sollIstAbgleich } from '../../lib/utils/csv'
 import { zeitRelativ } from '../../lib/utils/format'
+import { fortschrittProGasse } from '../../lib/utils/gasse'
 
 export function DashboardPage() {
   const { aktiveInventur, positionen, artikel, warteschlange, nutzer } = useApp()
@@ -87,6 +88,39 @@ export function DashboardPage() {
         </div>
         <ChevronRight className="size-5 text-ink-3" />
       </Link>
+
+      <Link to="/bericht" className="card flex items-center gap-3 px-4 py-4">
+        <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+          <Printer className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Abschlussbericht</p>
+          <p className="text-sm text-ink-2">Gassen, Auffälligkeiten und Nachzählungen, als PDF sicherbar</p>
+        </div>
+        <ChevronRight className="size-5 text-ink-3" />
+      </Link>
+
+      {positionen.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-semibold">Fortschritt nach Gasse</h2>
+          <ul className="card divide-y divide-line">
+            {fortschrittProGasse(positionen).map((g) => (
+              <li key={g.gasse} className="flex items-center gap-3 px-4 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 font-bold">{g.gasse}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="tabular text-sm font-semibold">
+                    {g.paletten} {g.paletten === 1 ? 'Palette' : 'Paletten'}
+                  </p>
+                  <p className="text-xs text-ink-2">
+                    {g.offen} offen · {g.abweichung} Abweichung{g.abweichung === 1 ? '' : 'en'} · {g.eingeschraenkt} eingeschränkt
+                  </p>
+                </div>
+                <span className="tabular text-sm font-bold">{g.menge.toLocaleString('de-DE')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <div className="mb-2 flex items-center justify-between">

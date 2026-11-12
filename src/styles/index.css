@@ -294,3 +294,22 @@ h3 {
     transition: none;
   }
 }
+
+/* Abschlussbericht: beim Drucken hell, ohne Bedienelemente */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .card,
+  .card-raised {
+    box-shadow: none !important;
+    background: #fff !important;
+    border: 1px solid #d9d4cf !important;
+  }
+  .bericht {
+    color: #000 !important;
+  }
+}

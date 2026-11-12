@@ -37,6 +37,8 @@ function basisVon(p: Position): PositionBasis {
     palettenNummer: p.palettenNummer,
     charge: p.charge,
     sollMenge: p.sollMenge,
+    ebene: p.ebene,
+    identitaetUnklar: p.identitaetUnklar,
   }
 }
 
@@ -166,7 +168,10 @@ export function PositionBearbeitenPage() {
           palettenNummer: p.palettenNummer,
           charge: p.charge,
           sollMenge: p.sollMenge,
+          ebene: p.ebene,
+          identitaetUnklar: p.identitaetUnklar,
         }}
+        eigeneId={p.id}
         submitText="Änderungen speichern"
         onSubmit={async (e) => {
           await speichern(e, false)
