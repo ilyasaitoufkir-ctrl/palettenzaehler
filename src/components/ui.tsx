@@ -100,17 +100,21 @@ export function ZahlFeld({
 /** Bottom Sheet für Formulare und Auswahl */
 export function Sheet({ offen, onClose, titel, children }: { offen: boolean; onClose: () => void; titel: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
+  // Die Schließen-Funktion wird bei jedem Rendern neu erzeugt. Sie nur über eine Referenz lesen,
+  // damit der Effekt nicht bei jeder Eingabe neu läuft und den Fokus aus dem Eingabefeld nimmt.
+  const schliessen = useRef(onClose)
+  schliessen.current = onClose
   useEffect(() => {
     if (!offen) return
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && schliessen.current()
     window.addEventListener('keydown', esc)
     document.body.style.overflow = 'hidden'
-    ref.current?.focus()
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus()
     return () => {
       window.removeEventListener('keydown', esc)
       document.body.style.overflow = ''
     }
-  }, [offen, onClose])
+  }, [offen])
   if (!offen) return null
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={titel}>
