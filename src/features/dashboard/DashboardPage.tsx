@@ -69,7 +69,7 @@ export function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kennzahl wert={positionen.length} label="Paletten erfasst" ton="accent" />
         <Kennzahl wert={gebinde.toLocaleString('de-DE')} label="Gebinde gesamt" />
         <Kennzahl wert={artikelAnzahl} label="Verschiedene Artikel" />

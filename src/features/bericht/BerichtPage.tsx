@@ -72,7 +72,7 @@ export function BerichtPage() {
         </p>
       </div>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Kennzahl wert={positionen.length} label="Paletten erfasst" ton="accent" />
         <Kennzahl wert={ist.toLocaleString('de-DE')} label="Gebinde gesamt" />
         <Kennzahl wert={differenz === 0 ? '0' : `${differenz > 0 ? '+' : ''}${differenz.toLocaleString('de-DE')}`} label="Differenz zum Soll" ton={differenz !== 0 ? 'bad' : undefined} />
