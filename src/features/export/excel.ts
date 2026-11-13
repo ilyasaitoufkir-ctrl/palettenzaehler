@@ -49,7 +49,7 @@ interface ExportOptionen {
 export async function inventurExcel(inventur: Inventur, positionen: Position[], artikel: Artikel[], opt: ExportOptionen): Promise<Blob> {
   const ExcelJS = await excel()
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'Palettenzähler'
+  wb.creator = 'Gebäude 5 Inventurunterstützung'
   wb.created = new Date()
 
   const kopfStil = (zeile: import('exceljs').Row) => {

@@ -76,7 +76,7 @@ export function LoginPage() {
           <Boxes className="size-7" />
         </div>
         <p className="relative mt-6 text-[0.6875rem] font-semibold tracking-[0.14em] uppercase text-white/80">Lager Inventur</p>
-        <h1 className="relative mt-1 text-[1.875rem] leading-tight font-semibold tracking-tight">Palettenzähler</h1>
+        <h1 className="relative mt-1 text-[1.875rem] leading-tight font-semibold tracking-tight">Gebäude 5 Inventurunterstützung</h1>
         <p className="relative mt-2 text-sm leading-relaxed text-white/85">Paletten fotografieren, Menge prüfen, Inventur fertig.</p>
       </div>
 
@@ -135,7 +135,7 @@ export function GesperrtPage() {
       <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-5">
         <h1 className="text-2xl font-bold">Kein Zugriff auf die Inventurdaten</h1>
         <p className="text-ink-2">
-          Der Palettenzähler speichert die Inventur gemeinsam für alle, mit denen die Seite geteilt ist. Dafür musst du in Claude angemeldet sein und die
+          Die App speichert die Inventur gemeinsam für alle, mit denen die Seite geteilt ist. Dafür musst du in Claude angemeldet sein und die
           Seite muss mit dir geteilt sein. Öffne den Link bitte in Claude und frag sonst die Person, die ihn dir geschickt hat.
         </p>
       </div>
