@@ -31,7 +31,7 @@ export function Layout() {
             <Boxes className="size-5" />
           </div>
           <div className="min-w-0">
-            <div className="font-semibold leading-tight">Gebäude 5 Inventurunterstützung</div>
+            <div className="text-base leading-tight font-bold tracking-tight">Gebäude 5 Inventurunterstützung</div>
             <div className="truncate text-xs text-ink-2">{aktiveInventur ? aktiveInventur.name : 'Keine aktive Inventur'}</div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export function Layout() {
             <Boxes className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[0.9375rem] leading-tight font-semibold">Gebäude 5 Inventurunterstützung</div>
+            <div className="truncate text-[1.0625rem] leading-tight font-bold tracking-tight">Gebäude 5 Inventurunterstützung</div>
             <div className="truncate text-xs text-ink-2">{aktiveInventur ? aktiveInventur.name : 'Keine aktive Inventur'}</div>
           </div>
           {!online && (
