@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle2, ClipboardEdit, RefreshCw, WifiOff } from 'lu
 import { useApp } from '../../app/AppContext'
 import { Leer, Spinner } from '../../components/ui'
 import { queueAktualisieren } from '../offline/queue'
-import { analysieren, positionBestaetigen } from '../offline/verarbeitung'
+import { analysieren, positionBestaetigen, positionZurueckholen } from '../offline/verarbeitung'
 import { erstErfassungsEingabe } from '../../lib/utils/pruefung'
 import type { PositionBasis } from '../../types'
 import { PositionForm, type KiAnzeige, type PositionStart } from './PositionForm'
@@ -88,8 +88,20 @@ export function BestaetigenPage() {
 
   const bestaetigen = async (basis: PositionBasis) => {
     try {
-      await positionBestaetigen(repo, eintrag.id, erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt'))
-      toast(`Position mit ${basis.menge} Stück gespeichert`)
+      const sekunden = Math.max(0, Math.round((Date.now() - eintrag.erstelltAm) / 1000))
+      const eingabe = { ...erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt'), erfassungSekunden: sekunden }
+      await positionBestaetigen(repo, eintrag.id, eingabe)
+      toast(`Position mit ${basis.menge} Stück gespeichert`, 'ok', {
+        label: 'Rückgängig',
+        onClick: async () => {
+          try {
+            await positionZurueckholen(repo, eintrag.id)
+            toast('Rückgängig gemacht. Die Palette kann neu bestätigt werden.', 'info')
+          } catch (err) {
+            toast((err as Error).message || 'Rückgängig fehlgeschlagen.', 'fehler')
+          }
+        },
+      })
       navigate('/erfassen')
     } catch (err) {
       toast((err as Error).message || 'Speichern fehlgeschlagen.', 'fehler')

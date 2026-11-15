@@ -9,6 +9,8 @@ interface Toast {
   id: number
   text: string
   art: 'ok' | 'fehler' | 'info'
+  aktion?: { label: string; onClick: () => void }
+  dauer: number
 }
 
 interface AppWert {
@@ -26,7 +28,7 @@ interface AppWert {
   warteschlange: QueueEintrag[]
   erkennen: RecognizePallet
   online: boolean
-  toast(text: string, art?: Toast['art']): void
+  toast(text: string, art?: Toast['art'], aktion?: Toast['aktion']): void
   warteschlangeAnstossen(): void
 }
 
@@ -88,10 +90,12 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
   const online = useOnline()
   const nutzer = auth.status === 'angemeldet' ? auth.nutzer : null
 
-  const toast = useCallback((text: string, art: Toast['art'] = 'ok') => {
+  const toast = useCallback((text: string, art: Toast['art'] = 'ok', aktion?: Toast['aktion']) => {
     const id = Date.now() + Math.random()
-    setToasts((t) => [...t.slice(-2), { id, text, art }])
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3800)
+    // Mit Aktion (z. B. Rückgängig) bleibt die Meldung länger sichtbar
+    const dauer = aktion ? 10000 : 3800
+    setToasts((t) => [...t.slice(-2), { id, text, art, aktion, dauer }])
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), dauer)
   }, [])
 
   useEffect(() => {
@@ -233,7 +237,20 @@ function Innen({ repo, children }: { repo: DataRepo; children: ReactNode }) {
             }`}
             role={t.art === 'fehler' ? 'alert' : 'status'}
           >
-            {t.text}
+            <div className="flex items-center gap-3">
+              <span>{t.text}</span>
+              {t.aktion && (
+                <button
+                  className="shrink-0 font-bold underline underline-offset-2"
+                  onClick={() => {
+                    setToasts((all) => all.filter((x) => x.id !== t.id))
+                    t.aktion?.onClick()
+                  }}
+                >
+                  {t.aktion.label}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

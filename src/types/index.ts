@@ -84,6 +84,8 @@ export interface Position {
   lagerplatzLaut: string
   /** Ebene im Regal (1 unten), leer wenn unbekannt */
   ebene: string
+  /** Sekunden von der ersten Aufnahme bis zum Speichern, null bei älteren Einträgen */
+  erfassungSekunden?: number | null
   /** Etikett oder Barcode nicht eindeutig lesbar, Palette nicht sicher identifiziert */
   identitaetUnklar: boolean
   pruefStatus: PruefStatus

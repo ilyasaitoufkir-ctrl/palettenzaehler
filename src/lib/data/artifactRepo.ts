@@ -279,6 +279,7 @@ export async function createArtifactRepo(): Promise<DataRepo> {
           sollMenge: numN(d.sollMenge),
           lagerplatzLaut: str(d.lagerplatzLaut),
           ebene: str(d.ebene),
+          erfassungSekunden: typeof d.erfassungSekunden === 'number' ? d.erfassungSekunden : null,
           identitaetUnklar: d.identitaetUnklar === true,
           pruefStatus: d.pruefStatus === 'offen' || d.pruefStatus === 'geprueft' ? d.pruefStatus : 'nicht_noetig',
           geprueftVon: str(d.geprueftVon),

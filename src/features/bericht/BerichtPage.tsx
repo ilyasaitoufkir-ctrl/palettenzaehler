@@ -42,6 +42,8 @@ export function BerichtPage() {
   const unklar = positionen.filter((p) => p.identitaetUnklar).length
   const sicht = positionen.filter((p) => p.ebene && Number(p.ebene) >= SICHTPRUEFUNG_AB_EBENE).length
   const gassen = fortschrittProGasse(positionen)
+  const zeiten = positionen.map((p) => p.erfassungSekunden).filter((x): x is number => typeof x === 'number')
+  const schnittSekunden = zeiten.length ? Math.round(zeiten.reduce((a, b) => a + b, 0) / zeiten.length) : null
   const auffaellig = positionen.filter((p) => p.pruefStatus !== 'nicht_noetig' || (p.sollMenge !== null && p.sollMenge !== p.menge))
   const nachzaehlungen = positionen
     .flatMap((p) =>
@@ -79,6 +81,7 @@ export function BerichtPage() {
         <Kennzahl wert={offen} label="Nachzählung offen" ton={offen ? 'bad' : undefined} />
         <Kennzahl wert={geprueft} label="Nachgezählt" />
         <Kennzahl wert={unklar + sicht} label="Eingeschränkt (Identität, Ebene)" />
+        <Kennzahl wert={schnittSekunden === null ? '–' : `${schnittSekunden} s`} label="Ø Zeit je Palette" />
       </section>
 
       <section>

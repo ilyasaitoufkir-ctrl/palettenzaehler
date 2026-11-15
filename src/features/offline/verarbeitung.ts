@@ -56,6 +56,14 @@ async function fotosNachreichen(repo: DataRepo, e: QueueEintrag): Promise<void> 
  * Bestätigt einen Eintrag: legt die Position unter der Queue ID an (idempotent)
  * und reicht danach die Fotos nach. Ein doppelter Klick oder ein erneuter Versuch erzeugt keine Dublette.
  */
+/** Macht eine Bestätigung rückgängig: Position wird entfernt, der Eintrag geht zurück auf „bereit“. */
+export async function positionZurueckholen(repo: DataRepo, id: string): Promise<void> {
+  const e = await queueHolen(id)
+  if (!e) throw new Error('Dieser Eintrag existiert nicht mehr.')
+  await repo.positionLoeschen(e.inventurId, e.id)
+  await queueAktualisieren(id, { status: 'bereit', fehler: null })
+}
+
 export async function positionBestaetigen(repo: DataRepo, id: string, eingabe: PositionEingabe): Promise<void> {
   const e = await queueHolen(id)
   if (!e) throw new Error('Dieser Eintrag existiert nicht mehr.')
