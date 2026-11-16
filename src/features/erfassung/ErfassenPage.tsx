@@ -6,7 +6,7 @@ import { barcodesAusBildern, liveScanMoeglich } from '../../lib/utils/barcode'
 import { PLATTFORM } from '../../lib/config'
 import { useApp } from '../../app/AppContext'
 import { Bestaetigen, Leer, Seitenkopf, Spinner } from '../../components/ui'
-import { BildFehler, bildOptimieren } from '../../lib/utils/bild'
+import { BildFehler, bildOptimieren, istUnscharf } from '../../lib/utils/bild'
 import { neueId } from '../../lib/utils/id'
 import { zeitRelativ } from '../../lib/utils/format'
 import { STATUS_TEXT, queueAktualisieren, queueLoeschen, queueSpeichern, type QueueEintrag, type QueueStatus } from '../offline/queue'
@@ -18,6 +18,7 @@ const SLOTS = ['Front', 'Seite', 'Draufsicht'] as const
 interface Foto {
   blob: Blob
   url: string
+  unscharf: boolean
 }
 
 const STATUS_CLS: Record<QueueStatus, string> = {
@@ -144,12 +145,14 @@ export function ErfassenPage() {
     setVerarbeitet(i)
     try {
       const blob = await bildOptimieren(datei)
+      const unscharf = await istUnscharf(blob)
       setFotos((alt) => {
         const neu = [...alt]
         if (neu[i]) URL.revokeObjectURL(neu[i]!.url)
-        neu[i] = { blob, url: URL.createObjectURL(blob) }
+        neu[i] = { blob, url: URL.createObjectURL(blob), unscharf }
         return neu
       })
+      if (unscharf) toast(`${SLOTS[i]}: Foto wirkt unscharf. Du kannst es neu aufnehmen.`, 'info')
     } catch (e) {
       toast(e instanceof BildFehler ? e.message : 'Foto konnte nicht verarbeitet werden.', 'fehler')
     } finally {
@@ -281,6 +284,14 @@ export function ErfassenPage() {
                 {f ? (
                   <>
                     <img src={f.url} alt={`${name} Foto`} className="size-full object-cover" />
+                    {f.unscharf && (
+                      <span
+                        role="status"
+                        className="absolute top-1.5 left-1.5 right-12 rounded-lg bg-warn-soft px-1.5 py-1 text-[11px] leading-tight font-semibold text-warn"
+                      >
+                        Unscharf? Neu aufnehmen
+                      </span>
+                    )}
                     <button
                       className="absolute top-1.5 right-1.5 grid size-10 place-items-center rounded-full bg-black/55 text-white"
                       onClick={() => entfernen(i)}

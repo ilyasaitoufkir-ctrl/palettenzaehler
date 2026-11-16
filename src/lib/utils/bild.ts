@@ -102,3 +102,61 @@ export async function barcodesLesen(bilder: Blob[]): Promise<string[] | null> {
 interface BarcodeDetectorCtor {
   new (): { detect(source: ImageBitmap): Promise<{ rawValue: string }[]> }
 }
+
+/** Kantenlänge, auf die für die Schärfeprüfung verkleinert wird (schneller, robust gegen Bildrauschen) */
+export const UNSCHARF_KANTE = 480
+/**
+ * Laplace-Varianz unter diesem Wert gilt als unscharf. Heuristischer Startwert,
+ * an echten Lagerfotos nachkalibrieren (Warnung ist nicht blockierend).
+ */
+export const UNSCHARF_SCHWELLE = 60
+
+/**
+ * Laplace-Varianz eines Graustufenbildes (Zeilen-weise, Länge b*h).
+ * Scharfe Kanten erzeugen große Werte, unscharfe Bilder kleine.
+ */
+export function laplaceVarianz(grau: ArrayLike<number>, b: number, h: number): number {
+  if (b < 3 || h < 3) return 0
+  let summe = 0
+  let summeQuadrat = 0
+  let n = 0
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < b - 1; x++) {
+      const i = y * b + x
+      const lap = 4 * grau[i] - grau[i - 1] - grau[i + 1] - grau[i - b] - grau[i + b]
+      summe += lap
+      summeQuadrat += lap * lap
+      n++
+    }
+  }
+  const mittel = summe / n
+  return summeQuadrat / n - mittel * mittel
+}
+
+/** true, wenn das Foto nach Laplace-Varianz unscharf wirkt. Fehler ergeben false (keine Warnung). */
+export async function istUnscharf(blob: Blob): Promise<boolean> {
+  try {
+    const bmp = await createImageBitmap(blob)
+    const faktor = Math.min(1, UNSCHARF_KANTE / Math.max(bmp.width, bmp.height))
+    const b = Math.max(1, Math.round(bmp.width * faktor))
+    const h = Math.max(1, Math.round(bmp.height * faktor))
+    const canvas = document.createElement('canvas')
+    canvas.width = b
+    canvas.height = h
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) {
+      bmp.close()
+      return false
+    }
+    ctx.drawImage(bmp, 0, 0, b, h)
+    bmp.close()
+    const daten = ctx.getImageData(0, 0, b, h).data
+    const grau = new Float32Array(b * h)
+    for (let i = 0, p = 0; i < grau.length; i++, p += 4) {
+      grau[i] = 0.299 * daten[p] + 0.587 * daten[p + 1] + 0.114 * daten[p + 2]
+    }
+    return laplaceVarianz(grau, b, h) < UNSCHARF_SCHWELLE
+  } catch {
+    return false
+  }
+}

@@ -76,7 +76,7 @@ export function LoginPage() {
           <Boxes className="size-7" />
         </div>
         <p className="relative mt-6 text-[0.6875rem] font-semibold tracking-[0.14em] uppercase text-white/80">Lager Inventur</p>
-        <h1 className="relative mt-1 text-[1.875rem] leading-tight font-semibold tracking-tight">Gebäude 5 Inventurunterstützung</h1>
+        <h1 className="relative mt-1 text-[1.875rem] leading-tight font-semibold tracking-tight">Geb5 Inventurunterstützung</h1>
         <p className="relative mt-2 text-sm leading-relaxed text-white/85">Paletten fotografieren, Menge prüfen, Inventur fertig.</p>
       </div>
 

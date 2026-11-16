@@ -130,7 +130,7 @@ export function InventurenPage() {
                 className="field"
                 value={bearbeiten.daten.name}
                 onChange={(e) => setBearbeiten({ ...bearbeiten, daten: { ...bearbeiten.daten, name: e.target.value } })}
-                placeholder="z. B. Jahresinventur Gebäude 5"
+                placeholder="z. B. Jahresinventur Geb5"
                 maxLength={120}
                 autoFocus
               />
