@@ -15,11 +15,18 @@ export interface Inventur {
   datum: string
   lagerort: string
   status: InventurStatus
+  /** Blind-Zählung: Soll und Abweichung werden während der aktiven Inventur nicht angezeigt */
+  blind?: boolean
+  /** Abweichung ab so vielen Stück gilt als auffällig, Standard 1 (jede Abweichung) */
+  schwelleStueck?: number
+  /** zusätzlich Abweichung ab so vielen Prozent vom Soll, optional */
+  schwelleProzent?: number | null
   erstelltVon: string
   erstelltAm: number
 }
 
-export type InventurEingabe = Pick<Inventur, 'name' | 'datum' | 'lagerort' | 'status'>
+export type InventurEingabe = Pick<Inventur, 'name' | 'datum' | 'lagerort' | 'status'> &
+  Partial<Pick<Inventur, 'blind' | 'schwelleStueck' | 'schwelleProzent'>>
 
 export interface Artikel {
   id: string
@@ -88,6 +95,10 @@ export interface Position {
   erfassungSekunden?: number | null
   /** Etikett oder Barcode nicht eindeutig lesbar, Palette nicht sicher identifiziert */
   identitaetUnklar: boolean
+  /** Palette ist leer, die Menge gilt als 0 */
+  leer?: boolean
+  /** freie Notiz der Erfasserin, z. B. beschädigte Ware */
+  notiz?: string
   pruefStatus: PruefStatus
   geprueftVon: string
   geprueftAm: number | null

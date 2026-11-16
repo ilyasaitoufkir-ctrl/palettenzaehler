@@ -5,6 +5,7 @@ import type { Artikel, Konfidenz, PositionBasis, PositionEingabe } from '../../t
 import { berechneMenge, kiWeichtAb, parseZahl } from '../../lib/utils/menge'
 import { KonfidenzBadge, Sheet, Spinner, ZahlFeld } from '../../components/ui'
 import { artikelSuche } from '../artikel/ArtikelPage'
+import type { PlatzMeldung } from '../../lib/utils/platz'
 
 export interface PositionStart {
   artikelId: string | null
@@ -25,6 +26,10 @@ export interface PositionStart {
   zuordnung?: string | null
   ebene?: string
   identitaetUnklar?: boolean
+  leer?: boolean
+  notiz?: string
+  /** Sofortige Prüfung gegen Stellplatz und Sollbestand */
+  hinweise?: PlatzMeldung[]
 }
 
 /** Vorschlag für einen neuen Artikel aus dem, was die KI erkannt hat */
@@ -59,6 +64,7 @@ export function PositionForm({
   zusatz,
   onNeuerArtikel,
   eigeneId,
+  sollSichtbar = true,
 }: {
   artikel: Artikel[]
   start: PositionStart
@@ -73,10 +79,13 @@ export function PositionForm({
   onNeuerArtikel?: (v: ArtikelVorschlag) => Promise<string>
   /** ID der Position, die gerade bearbeitet wird, damit sie nicht als Dublette zählt */
   eigeneId?: string
+  /** false bei Blind-Zählung: Soll und Abweichung werden nicht angezeigt */
+  sollSichtbar?: boolean
 }) {
-  const { positionen } = useApp()
+  const { positionen, nutzer } = useApp()
   const [artikelId, setArtikelId] = useState(start.artikelId)
   const [freiBez, setFreiBez] = useState(start.bezeichnung)
+  const [gebinde, setGebinde] = useState(start.gebindeart)
   const [lagen, setLagen] = useState(t(start.lagen))
   const [spl, setSpl] = useState(t(start.stueckProLage))
   const [fehlend, setFehlend] = useState(t(start.fehlend ?? 0))
@@ -85,9 +94,20 @@ export function PositionForm({
   const [charge, setCharge] = useState(start.charge)
   const [ebene, setEbene] = useState(start.ebene ?? '')
   const [unklar, setUnklar] = useState(start.identitaetUnklar ?? false)
+  const [leer, setLeer] = useState(start.leer ?? false)
+  const [notiz, setNotiz] = useState(start.notiz ?? '')
   const doppelt = palettenNummer.trim()
     ? positionen.find((p) => p.palettenNummer.trim() === palettenNummer.trim() && p.id !== eigeneId)
     : undefined
+  /** Stellplatz schon von einer anderen Person erfasst: nur ein Hinweis, nie ein stilles Überschreiben */
+  const anderePerson = positionen.find(
+    (p) =>
+      p.id !== eigeneId &&
+      !!lagerplatz.trim() &&
+      p.lagerplatz.trim().toLowerCase() === lagerplatz.trim().toLowerCase() &&
+      p.erstelltVon !== (nutzer?.email ?? '') &&
+      p.palettenNummer.trim() !== palettenNummer.trim(),
+  )
   const [legtAn, setLegtAn] = useState(false)
   const [pickerOffen, setPickerOffen] = useState(false)
   const [q, setQ] = useState('')
@@ -96,10 +116,13 @@ export function PositionForm({
   const gewaehlt = artikel.find((a) => a.id === artikelId) ?? null
   const ergebnis = berechneMenge({ lagen: parseZahl(lagen), stueckProLage: parseZahl(spl), fehlend: parseZahl(fehlend) })
   const abweichung = ki ? kiWeichtAb(ki.gesamt, ergebnis.menge) : false
+  /** Bei leerer Palette gilt die Menge als 0, die Lagen-Angaben entfallen */
+  const mengeFinal = leer ? 0 : ergebnis.menge
   const treffer = useMemo(() => artikelSuche(artikel, q).slice(0, 60), [artikel, q])
 
   const waehlen = (a: Artikel | null) => {
     setArtikelId(a?.id ?? null)
+    if (a) setGebinde([a.gebindeart, a.gebindegroesse].filter(Boolean).join(' '))
     if (a && !spl && a.stueckProLage) setSpl(String(a.stueckProLage))
     setPickerOffen(false)
     setQ('')
@@ -107,18 +130,18 @@ export function PositionForm({
 
   const absenden = async (e: FormEvent) => {
     e.preventDefault()
-    if (ergebnis.menge === null || sendet) return
+    if (mengeFinal === null || !gebinde.trim() || sendet) return
     setSendet(true)
     try {
       await onSubmit({
         artikelId: gewaehlt?.id ?? null,
         artikelnummer: gewaehlt?.artikelnummer ?? '',
         bezeichnung: gewaehlt?.bezeichnung ?? (freiBez.trim() || ki?.beschreibung || ''),
-        gebindeart: gewaehlt ? [gewaehlt.gebindeart, gewaehlt.gebindegroesse].filter(Boolean).join(' ') : start.gebindeart,
+        gebindeart: gebinde.trim(),
         lagen: parseZahl(lagen) ?? 0,
         stueckProLage: parseZahl(spl) ?? 0,
         fehlend: parseZahl(fehlend) ?? 0,
-        menge: ergebnis.menge,
+        menge: mengeFinal,
         lagerplatz: lagerplatz.trim(),
         konfidenz: konfidenzFest ?? ki?.konfidenz ?? 'manuell',
         quelle: ki || (konfidenzFest && konfidenzFest !== 'manuell') ? 'ki' : 'manuell',
@@ -130,6 +153,8 @@ export function PositionForm({
         sollMenge: start.sollMenge,
         ebene: ebene.trim(),
         identitaetUnklar: unklar,
+        leer,
+        notiz: notiz.trim(),
       })
     } finally {
       setSendet(false)
@@ -138,6 +163,16 @@ export function PositionForm({
 
   return (
     <form onSubmit={absenden} className="flex flex-col gap-5">
+      {start.hinweise?.map((h) => (
+        <p
+          key={h.text}
+          className={`flex items-center gap-2 rounded-[14px] px-4 py-3 text-sm font-semibold ${h.ton === 'ok' ? 'bg-ok-soft text-ok' : h.ton === 'bad' ? 'bg-bad-soft text-bad' : 'bg-warn-soft text-warn'}`}
+          role={h.ton === 'ok' ? 'status' : 'alert'}
+        >
+          <MapPin className="size-4 shrink-0" /> {h.text}
+        </p>
+      ))}
+
       {start.zuordnung && (
         <p className="flex items-center gap-2 rounded-[14px] bg-ok-soft px-4 py-3 text-sm font-semibold text-ok">
           <Barcode className="size-4 shrink-0" /> {start.zuordnung}
@@ -245,6 +280,28 @@ export function PositionForm({
         )}
       </div>
 
+      <div>
+        <label className="label" htmlFor="pos-gebinde">
+          Gebinde
+        </label>
+        <input
+          id="pos-gebinde"
+          className="field"
+          list="gebinde-vorschlaege"
+          placeholder="z. B. Kanister 25 l, Fass, IBC"
+          value={gebinde}
+          maxLength={80}
+          onChange={(e) => setGebinde(e.target.value)}
+          aria-invalid={!gebinde.trim()}
+        />
+        <datalist id="gebinde-vorschlaege">
+          {['Kanister', 'Karton', 'Fass', 'IBC', 'Sack', 'Eimer'].map((g) => (
+            <option key={g} value={g} />
+          ))}
+        </datalist>
+        {!gebinde.trim() && <p className="mt-1.5 text-xs font-medium text-warn">Bitte das Gebinde angeben, zum Beispiel Kanister 25 l.</p>}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <ZahlFeld label="Lagen" wert={lagen} onChange={setLagen} />
         <ZahlFeld label="Stück pro Lage" wert={spl} onChange={setSpl} hinweis={gewaehlt?.stueckProLage ? `Stamm: ${gewaehlt.stueckProLage}` : undefined} />
@@ -272,6 +329,16 @@ export function PositionForm({
         </div>
       </div>
 
+      {anderePerson && (
+        <p className="flex gap-3 rounded-[18px] bg-info-soft px-4 py-3 text-sm text-info" role="status">
+          <Info className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Stellplatz {anderePerson.lagerplatz} wurde schon von {anderePerson.erstelltVon} erfasst (Pal. {anderePerson.palettenNummer || 'ohne Nummer'}).
+            Bitte prüfen, ob es eine weitere Palette ist. Gespeichert wird in jedem Fall als eigene Position.
+          </span>
+        </p>
+      )}
+
       {doppelt && (
         <div className="flex gap-3 rounded-[18px] bg-warn-soft px-4 py-3 text-sm text-warn" role="alert">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -294,16 +361,41 @@ export function PositionForm({
         </label>
       </div>
 
-      <div className={`rounded-[18px] px-4 py-4 ${ergebnis.menge === null ? 'bg-surface-2' : 'bg-accent-soft'}`} aria-live="polite">
+      <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[14px] bg-surface-2 px-4 text-sm font-medium">
+        <input type="checkbox" className="size-5" checked={leer} onChange={(e) => setLeer(e.target.checked)} />
+        Palette ist leer (Menge 0)
+      </label>
+
+      <div className={`rounded-[18px] px-4 py-4 ${mengeFinal === null ? 'bg-surface-2' : 'bg-accent-soft'}`} aria-live="polite">
         <p className="eyebrow">Gesamtmenge</p>
-        <p className="tabular mt-1 text-sm text-ink-2">
-          {lagen || '?'} Lagen × {spl || '?'} Stück − {fehlend || 0} fehlend =
-        </p>
-        <p className={`tabular text-4xl font-bold ${ergebnis.menge === null ? 'text-ink-3' : 'text-accent'}`}>{ergebnis.menge ?? '?'}</p>
-        {ergebnis.fehler && <p className="mt-1 text-sm font-medium text-bad">{ergebnis.fehler}</p>}
+        {leer ? (
+          <p className="tabular text-4xl font-bold text-accent">0</p>
+        ) : (
+          <>
+            <p className="tabular mt-1 text-sm text-ink-2">
+              {lagen || '?'} Lagen × {spl || '?'} Stück − {fehlend || 0} fehlend =
+            </p>
+            <p className={`tabular text-4xl font-bold ${ergebnis.menge === null ? 'text-ink-3' : 'text-accent'}`}>{ergebnis.menge ?? '?'}</p>
+          </>
+        )}
+        {!leer && ergebnis.fehler && <p className="mt-1 text-sm font-medium text-bad">{ergebnis.fehler}</p>}
       </div>
 
-      {start.sollMenge !== null && (
+      <div className="min-w-0">
+        <label className="label" htmlFor="pos-notiz">
+          Notiz (optional)
+        </label>
+        <textarea
+          id="pos-notiz"
+          className="field min-h-[88px] py-3"
+          placeholder="z. B. Folie beschädigt, Etikett fehlt"
+          value={notiz}
+          maxLength={500}
+          onChange={(e) => setNotiz(e.target.value)}
+        />
+      </div>
+
+      {sollSichtbar && start.sollMenge !== null && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-4 py-3">
           <div className="min-w-0">
             <p className="eyebrow">Laut Bestand</p>
@@ -338,7 +430,7 @@ export function PositionForm({
         </div>
       )}
 
-      {start.lagerplatzLaut && lagerplatz.trim() && lagerplatz.trim() !== start.lagerplatzLaut && (
+      {sollSichtbar && start.lagerplatzLaut && lagerplatz.trim() && lagerplatz.trim() !== start.lagerplatzLaut && (
         <p className="flex gap-2 rounded-[14px] bg-warn-soft px-4 py-3 text-sm text-warn" role="alert">
           <MapPin className="mt-0.5 size-4 shrink-0" />
           Laut Bestand steht diese Palette auf {start.lagerplatzLaut}. Nach dem Speichern prüft eine zweite Person die Zählung.
@@ -354,7 +446,7 @@ export function PositionForm({
 
       {zusatz}
 
-      <button className="btn btn-primary btn-lg sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] shadow-lg" disabled={ergebnis.menge === null || sendet}>
+      <button className="btn btn-primary btn-lg sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] shadow-lg" disabled={mengeFinal === null || !gebinde.trim() || sendet}>
         {sendet && <Spinner />} {submitText}
       </button>
 

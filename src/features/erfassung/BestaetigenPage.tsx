@@ -6,7 +6,7 @@ import { useApp } from '../../app/AppContext'
 import { Leer, Spinner } from '../../components/ui'
 import { queueAktualisieren } from '../offline/queue'
 import { analysieren, positionBestaetigen, positionZurueckholen } from '../offline/verarbeitung'
-import { erstErfassungsEingabe } from '../../lib/utils/pruefung'
+import { erstErfassungsEingabe, schwelleVon, sollSichtbar } from '../../lib/utils/pruefung'
 import type { PositionBasis } from '../../types'
 import { PositionForm, type KiAnzeige, type PositionStart } from './PositionForm'
 import { startwerte } from './startwerte'
@@ -24,7 +24,7 @@ function useObjectUrls(bilder: Blob[] | undefined) {
 
 export function BestaetigenPage() {
   const { id = '' } = useParams()
-  const { warteschlange, artikel, bestand, repo, erkennen, toast, online, nutzer } = useApp()
+  const { warteschlange, artikel, bestand, repo, erkennen, toast, online, nutzer, aktiveInventur, positionen } = useApp()
   const navigate = useNavigate()
   const eintrag = warteschlange.find((w) => w.id === id)
   const fotos = useObjectUrls(eintrag?.bilder)
@@ -32,7 +32,7 @@ export function BestaetigenPage() {
 
   const ki = eintrag?.ergebnis?.ki
   const start = useMemo<PositionStart>(
-    () => startwerte(eintrag?.ergebnis?.barcodeWerte ?? [], ki ?? null, bestand, artikel, eintrag?.lagerplatz ?? ''),
+    () => startwerte(eintrag?.ergebnis?.barcodeWerte ?? [], ki ?? null, bestand, artikel, eintrag?.lagerplatz ?? '', positionen.map((p) => p.palettenNummer)),
     // nur beim ersten Ergebnis vorbelegen
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [eintrag?.ergebnis],
@@ -89,7 +89,7 @@ export function BestaetigenPage() {
   const bestaetigen = async (basis: PositionBasis) => {
     try {
       const sekunden = Math.max(0, Math.round((Date.now() - eintrag.erstelltAm) / 1000))
-      const eingabe = { ...erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt'), erfassungSekunden: sekunden }
+      const eingabe = { ...erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt', schwelleVon(aktiveInventur)), erfassungSekunden: sekunden }
       await positionBestaetigen(repo, eintrag.id, eingabe)
       toast(`Position mit ${basis.menge} Stück gespeichert`, 'ok', {
         label: 'Rückgängig',
@@ -118,6 +118,7 @@ export function BestaetigenPage() {
         <PositionForm
           artikel={artikel}
           start={manuell ? { ...start, lagen: null, stueckProLage: null, fehlend: 0 } : start}
+          sollSichtbar={sollSichtbar(aktiveInventur)}
           key={manuell ? 'manuell' : 'ki'}
           ki={manuell ? null : kiAnzeige}
           fotos={fotos}

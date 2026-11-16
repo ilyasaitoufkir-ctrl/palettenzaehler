@@ -39,3 +39,67 @@ export function fortschrittProGasse(positionen: Position[]): GassenZeile[] {
   }
   return [...map.values()].sort((a, b) => a.gasse.localeCompare(b.gasse, 'de'))
 }
+
+export interface GassenPlatz {
+  lagerplatz: string
+  palettenNummer: string
+  bezeichnung: string
+  /** true, wenn für diese Palette schon eine Position erfasst ist */
+  erledigt: boolean
+}
+
+export interface GassenBlock {
+  gasse: string
+  plaetze: GassenPlatz[]
+  erledigt: number
+  gesamt: number
+}
+
+export interface GassenListe {
+  gassen: GassenBlock[]
+  /** erfasste Paletten, die nicht in der Bestandsliste stehen */
+  nichtImBestand: number
+}
+
+const normNummer = (s: string) => s.replace(/\s+/g, '').toUpperCase()
+
+/**
+ * Feste Reihenfolge der Plätze je Gasse. Grundlage ist die Bestandsliste:
+ * jede Palette darin ist entweder erledigt (Position erfasst) oder offen.
+ * Ohne Bestandsliste entstehen die Plätze aus den erfassten Positionen.
+ */
+export function gassenListe(bestand: { palettenNummer: string; lagerplatz: string; bezeichnung: string }[], positionen: Position[]): GassenListe {
+  const erfasst = new Set(positionen.map((p) => normNummer(p.palettenNummer)).filter(Boolean))
+  const imBestand = new Set(bestand.map((b) => normNummer(b.palettenNummer)).filter(Boolean))
+
+  const quelle: GassenPlatz[] =
+    bestand.length > 0
+      ? bestand.map((b) => ({
+          lagerplatz: b.lagerplatz,
+          palettenNummer: b.palettenNummer,
+          bezeichnung: b.bezeichnung,
+          erledigt: erfasst.has(normNummer(b.palettenNummer)),
+        }))
+      : positionen.map((p) => ({
+          lagerplatz: p.lagerplatz,
+          palettenNummer: p.palettenNummer,
+          bezeichnung: p.bezeichnung,
+          erledigt: true,
+        }))
+
+  const map = new Map<string, GassenBlock>()
+  for (const platz of quelle) {
+    const g = gasseVon(platz.lagerplatz)
+    const block = map.get(g) ?? { gasse: g, plaetze: [], erledigt: 0, gesamt: 0 }
+    block.plaetze.push(platz)
+    block.gesamt += 1
+    if (platz.erledigt) block.erledigt += 1
+    map.set(g, block)
+  }
+  const gassen = [...map.values()]
+    .map((b) => ({ ...b, plaetze: b.plaetze.sort((a, c) => a.lagerplatz.localeCompare(c.lagerplatz, 'de', { numeric: true })) }))
+    .sort((a, b) => a.gasse.localeCompare(b.gasse, 'de'))
+
+  const nichtImBestand = bestand.length > 0 ? positionen.filter((p) => !imBestand.has(normNummer(p.palettenNummer))).length : 0
+  return { gassen, nichtImBestand }
+}

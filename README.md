@@ -81,6 +81,15 @@ Danach neu deployen. Die Vercel Domain zusätzlich in Firebase Authentication un
 - Firestore und Storage Rules: nur freigeschaltete Konten, keine öffentlichen Schreibzugriffe, Positionen nur in aktiven Inventuren, nur JPEG bis 3 MB.
 - CSV Export schützt vor Formel Injection in Excel.
 
+## Mehrere Zähler gleichzeitig
+
+- Alle freigeschalteten Nutzer zählen parallel in derselben Inventur. Die Daten laufen über Firestore in Echtzeit, Listen und Lagerplan aktualisieren sich bei allen Geräten live.
+- Jede Position speichert, wer sie erfasst hat (`erstelltVon`) und wann (`erstelltAm`). Änderungen landen im Protokoll mit Name und Zeit.
+- Wird ein Stellplatz schon von einer anderen Person erfasst, zeigt die App einen Hinweis. Gespeichert wird als eigene Position, nie wird eine vorhandene überschrieben.
+- Eine Palettennummer, die schon erfasst ist, löst ebenfalls einen Hinweis aus.
+- Ohne Netz bleiben Eingaben in der lokalen Warteschlange und werden bei Verbindung übertragen.
+- Keine Schlüssel im Frontend. Firebase Konfiguration ist öffentlich, das Dienstkonto und der KI Schlüssel liegen nur auf dem Server.
+
 ## Offline
 
 Fotos ohne Netz landen in IndexedDB (Status "Wartet auf Verbindung") und werden bei Wiederverbindung automatisch analysiert. Bestätigte Positionen werden unter der ID des Warteschlangeneintrags gespeichert, wiederholtes Speichern erzeugt keine Dubletten. Firestore hält Schreibvorgänge offline im lokalen Cache. Fotos werden nach erfolgreichem Upload vom Gerät gelöscht. Für die erste Anmeldung braucht es Internet.
@@ -99,7 +108,9 @@ npm run check         # alles zusammen inkl. Bundle Prüfung
 
 - Bilderkennung zählt nur Sichtbares. Verdeckte Gebinde im Palettenkern kann keine Kamera sehen, daher bestätigt immer ein Mensch.
 - Barcode Erkennung nutzt die BarcodeDetector API des Browsers (z. B. Chrome auf Android). Safari auf dem iPhone unterstützt sie derzeit nicht, dann wird der Schritt übersprungen.
-- Kein Import des Sollbestands aus dem ERP: Sollwerte kommen aus dem Artikelstamm (Feld oder CSV Import).
+- Sollbestand per Excel oder CSV. Beim Import ordnest du die Spalten zu, die Zuordnung lässt sich als Vorlage speichern.
+- Export der Differenzliste (Spalten und Reihenfolge frei wählbar) und der Nachzählliste als CSV mit Semikolon. Das Format für Navision bzw. PSI ist noch nicht final und wird mit der IT abgestimmt. Eine fiktive Beispieldatei liegt im Export bei.
+- Die Schwelle für Nachzählungen (absolut in Stück, optional in Prozent) wird je Inventur eingestellt. Standard: jede Abweichung.
 
 ## Betrieb als Claude Seite (ohne eigene Schlüssel)
 

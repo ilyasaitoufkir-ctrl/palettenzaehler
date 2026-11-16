@@ -6,7 +6,7 @@ import { Bestaetigen, Leer, Seitenkopf, Sheet } from '../../components/ui'
 import type { Inventur, InventurEingabe } from '../../types'
 import { heuteIso } from '../../lib/utils/format'
 
-const leer = (): InventurEingabe => ({ name: '', datum: heuteIso(), lagerort: '', status: 'aktiv' })
+const leer = (): InventurEingabe => ({ name: '', datum: heuteIso(), lagerort: '', status: 'aktiv', blind: false, schwelleStueck: 1, schwelleProzent: null })
 
 export function InventurenPage() {
   const { inventuren, aktiveInventur, aktiveInventurWaehlen, repo, toast } = useApp()
@@ -85,7 +85,7 @@ export function InventurenPage() {
                 <div className="flex border-t border-line">
                   <button
                     className="btn btn-ghost flex-1 rounded-none text-sm"
-                    onClick={() => setBearbeiten({ id: i.id, daten: { name: i.name, datum: i.datum, lagerort: i.lagerort, status: i.status } })}
+                    onClick={() => setBearbeiten({ id: i.id, daten: { name: i.name, datum: i.datum, lagerort: i.lagerort, status: i.status, blind: i.blind ?? false, schwelleStueck: i.schwelleStueck ?? 1, schwelleProzent: i.schwelleProzent ?? null } })}
                   >
                     <Pencil className="size-4" /> Bearbeiten
                   </button>
@@ -162,6 +162,58 @@ export function InventurenPage() {
                 />
               </div>
             </div>
+            <fieldset className="card flex flex-col gap-3 px-4 py-4">
+              <legend className="label px-0">Nachzählung ab Abweichung</legend>
+              <p className="text-sm text-ink-2">Weicht die Menge um mehr als diese Schwelle vom Soll ab, kommt die Palette in die Nachzählliste.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <label className="label" htmlFor="inv-schwelle-stueck">
+                    Stück
+                  </label>
+                  <input
+                    id="inv-schwelle-stueck"
+                    className="field tabular"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={bearbeiten.daten.schwelleStueck ?? 1}
+                    onChange={(e) => setBearbeiten({ ...bearbeiten, daten: { ...bearbeiten.daten, schwelleStueck: Math.max(1, Math.round(Number(e.target.value) || 1)) } })}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label className="label" htmlFor="inv-schwelle-prozent">
+                    Prozent (optional)
+                  </label>
+                  <input
+                    id="inv-schwelle-prozent"
+                    className="field tabular"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    placeholder="aus"
+                    value={bearbeiten.daten.schwelleProzent ?? ''}
+                    onChange={(e) =>
+                      setBearbeiten({
+                        ...bearbeiten,
+                        daten: { ...bearbeiten.daten, schwelleProzent: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </fieldset>
+            <label className="flex min-h-[52px] cursor-pointer items-start gap-3 rounded-[14px] bg-surface-2 px-4 py-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-5"
+                checked={!!bearbeiten.daten.blind}
+                onChange={(e) => setBearbeiten({ ...bearbeiten, daten: { ...bearbeiten.daten, blind: e.target.checked } })}
+              />
+              <span>
+                <span className="block font-semibold">Blind-Zählung</span>
+                <span className="block text-ink-2">Das Soll wird während der aktiven Inventur nicht angezeigt. Abweichungen sieht man erst im Bericht.</span>
+              </span>
+            </label>
             <button className="btn btn-primary btn-lg mt-1">{bearbeiten.id ? 'Speichern' : 'Anlegen und aktivieren'}</button>
           </form>
         )}

@@ -314,18 +314,42 @@ export interface BestandImportErgebnis {
   fehler: string[]
 }
 
-/** Bestandsliste aus Tabellenzeilen (Excel oder CSV), erste Zeile sind die Spaltennamen */
-export function bestandAusZeilen(roh: string[][]): BestandImportErgebnis {
+export type BestandFeld = 'palettenNummer' | 'artikelnummer' | 'bezeichnung' | 'menge' | 'charge' | 'lagerplatz'
+
+/** Felder des Bestandsimports mit Beschriftung. Die Palettennummer ist Pflicht. */
+export const BESTAND_FELDER: { feld: BestandFeld; label: string; pflicht: boolean }[] = [
+  { feld: 'palettenNummer', label: 'Palettennummer (NVE, SSCC, LE)', pflicht: true },
+  { feld: 'lagerplatz', label: 'Lagerplatz', pflicht: false },
+  { feld: 'menge', label: 'Menge in Stück', pflicht: false },
+  { feld: 'bezeichnung', label: 'Bezeichnung', pflicht: false },
+  { feld: 'charge', label: 'Charge', pflicht: false },
+  { feld: 'artikelnummer', label: 'Artikel Nummer (optional)', pflicht: false },
+]
+
+/** Zuordnung Feld → Spaltenindex in der Datei */
+export type BestandZuordnung = Partial<Record<BestandFeld, number>>
+
+/** Vorschlag aus den Spaltennamen, erster Treffer je Feld gewinnt */
+export function vorschlagZuordnung(kopf: string[]): BestandZuordnung {
+  const z: BestandZuordnung = {}
+  kopf.forEach((k, i) => {
+    const feld = BESTAND_ALIAS[normSpalte(String(k)).replace(/-/g, '')] as BestandFeld | undefined
+    if (feld && z[feld] === undefined) z[feld] = i
+  })
+  return z
+}
+
+/** Bestandsliste aus Tabellenzeilen mit einer festen Spaltenzuordnung (Nutzer hat sie beim Import gewählt) */
+export function bestandAusZeilenMitZuordnung(roh: string[][], zuordnung: BestandZuordnung): BestandImportErgebnis {
   const zeilen = roh.filter((z) => z.some((f) => String(f ?? '').trim() !== ''))
   if (zeilen.length < 2) return { paletten: [], fehler: ['Die Datei enthält keine Datenzeilen.'] }
-  const kopf = zeilen[0].map((k) => BESTAND_ALIAS[normSpalte(String(k)).replace(/-/g, '')])
-  if (!kopf.includes('palettenNummer')) return { paletten: [], fehler: ['Spalte "Palettennummer" (oder NVE, SSCC, LE-Nummer) wird benötigt.'] }
+  if (zuordnung.palettenNummer === undefined) return { paletten: [], fehler: ['Spalte "Palettennummer" (oder NVE, SSCC, LE-Nummer) wird benötigt.'] }
   const fehler: string[] = []
   const map = new Map<string, BestandsPalette>()
   zeilen.slice(1).forEach((z, i) => {
-    const get = (k: string) => {
-      const idx = kopf.indexOf(k as never)
-      return idx >= 0 ? String(z[idx] ?? '').trim() : ''
+    const get = (f: BestandFeld) => {
+      const idx = zuordnung[f]
+      return idx !== undefined ? String(z[idx] ?? '').trim() : ''
     }
     const nr = get('palettenNummer')
     const id = nummerNorm(nr)
@@ -345,4 +369,11 @@ export function bestandAusZeilen(roh: string[][]): BestandImportErgebnis {
     })
   })
   return { paletten: Array.from(map.values()), fehler }
+}
+
+/** Bestandsliste aus Tabellenzeilen (Excel oder CSV), erste Zeile sind die Spaltennamen. Automatische Zuordnung. */
+export function bestandAusZeilen(roh: string[][]): BestandImportErgebnis {
+  const zeilen = roh.filter((z) => z.some((f) => String(f ?? '').trim() !== ''))
+  if (zeilen.length < 2) return { paletten: [], fehler: ['Die Datei enthält keine Datenzeilen.'] }
+  return bestandAusZeilenMitZuordnung(roh, vorschlagZuordnung(zeilen[0]))
 }

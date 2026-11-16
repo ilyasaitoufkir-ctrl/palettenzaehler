@@ -6,6 +6,8 @@ import { KonfidenzBadge, Leer, Seitenkopf, Sheet, Spinner } from '../../componen
 import { inventurCsv, sollIstAbgleich, sollIstCsv } from '../../lib/utils/csv'
 import { dateiAusgeben } from '../../lib/utils/download'
 import { dateinameSicher, zeitRelativ } from '../../lib/utils/format'
+import { sollSichtbar } from '../../lib/utils/pruefung'
+import { anzahlText, sollBekannt } from '../../lib/utils/soll'
 import type { Position } from '../../types'
 
 type Filter = 'alle' | 'niedrig' | 'ohne' | 'manuell' | 'pruefen'
@@ -20,7 +22,8 @@ const SORT: Record<Sortierung, { text: string; fn: (a: Position, b: Position) =>
 }
 
 export function ListePage() {
-  const { aktiveInventur, positionen, positionenGeladen, artikel, toast } = useApp()
+  const { aktiveInventur, positionen, positionenGeladen, artikel, toast, bestand } = useApp()
+  const sollZeigen = sollSichtbar(aktiveInventur)
   const [params, setParams] = useSearchParams()
   const ansicht = params.get('ansicht') === 'abgleich' ? 'abgleich' : 'positionen'
   const [q, setQ] = useState('')
@@ -123,6 +126,9 @@ export function ListePage() {
           <Leer icon={<ClipboardList className="size-7" />} titel="Noch nichts abzugleichen" text="Hinterlege Sollbestände im Artikelstamm oder erfasse Paletten." />
         ) : (
           <>
+            {!sollBekannt(bestand, positionen) && (
+              <p className="mb-3 rounded-[14px] bg-surface-2 px-4 py-3 text-sm text-ink-2">Kein Sollbestand geladen. Differenzen sind nicht verfügbar.</p>
+            )}
             <p className="mb-3 text-sm text-ink-2">Summe je Artikel aus allen Positionen, verglichen mit dem Sollbestand im Artikelstamm.</p>
             <ul className="flex flex-col gap-2">
               {abgleich.map((z) => {
@@ -133,7 +139,7 @@ export function ListePage() {
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{z.bezeichnung}</p>
                         <p className="truncate text-xs text-ink-2">
-                          {z.gebindeart || 'ohne Gebinde'} · {z.positionen} {z.positionen === 1 ? 'Palette' : 'Paletten'}
+                          {z.gebindeart || 'ohne Gebinde'} · {anzahlText(z.positionen, 'Palette', 'Paletten')}
                         </p>
                       </div>
                       <div className={`tabular shrink-0 text-right text-lg font-bold ${ton}`}>
@@ -217,7 +223,7 @@ export function ListePage() {
           ) : (
             <>
               <p className="mb-2 text-xs font-medium text-ink-3">
-                {gefiltert.length} Positionen · {summe.toLocaleString('de-DE')} Gebinde
+                {anzahlText(gefiltert.length, 'Position', 'Positionen')} · {summe.toLocaleString('de-DE')} Gebinde
               </p>
               <ul className="flex flex-col gap-2">
                 {gefiltert.map((p) => (
@@ -230,17 +236,19 @@ export function ListePage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold">{p.bezeichnung || 'Ohne Artikel'}</p>
                         <p className="truncate text-xs text-ink-2">
-                          {p.gebindeart || 'Gebinde ?'}
+                          {p.gebindeart || 'Gebinde fehlt'}
                           {p.palettenNummer ? ` · Pal. ${p.palettenNummer}` : ''}
                           {p.charge ? ` · Ch. ${p.charge}` : ''}
                         </p>
                         <p className="truncate text-xs text-ink-3">
                           {p.lagerplatz || 'ohne Platz'} · {zeitRelativ(p.erstelltAm)} · {p.erstelltVon}
                         </p>
+                        {p.notiz && <p className="truncate text-xs text-ink-2">Notiz: {p.notiz}</p>}
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <span className="tabular text-xl font-bold">{p.menge}</span>
-                        {p.sollMenge !== null && p.sollMenge !== p.menge && (
+                        {p.leer && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[0.6875rem] font-semibold text-ink-2">Leer</span>}
+                        {sollZeigen && p.sollMenge !== null && p.sollMenge !== p.menge && (
                           <span className="tabular text-xs font-semibold text-bad">
                             Soll {p.sollMenge} ({p.menge - p.sollMenge > 0 ? '+' : ''}
                             {p.menge - p.sollMenge})

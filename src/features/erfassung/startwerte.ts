@@ -1,13 +1,21 @@
 import type { Artikel, BestandsPalette, KiErgebnis } from '../../types'
 import { nachschlagen } from '../../lib/utils/zuordnung'
 import type { PositionStart } from './PositionForm'
+import { platzMeldungen } from '../../lib/utils/platz'
 
 /**
  * Baut die Vorbelegung einer Position aus allem, was bekannt ist:
  * gescannte Barcodes, von der KI abgelesene Nummern, Bestandsliste und Artikelstamm.
  * Die Bestandsliste hat Vorrang, weil sie aus dem ERP kommt.
  */
-export function startwerte(nummern: string[], ki: KiErgebnis | null, bestand: BestandsPalette[], artikel: Artikel[], platzAktiv = ''): PositionStart {
+export function startwerte(
+  nummern: string[],
+  ki: KiErgebnis | null,
+  bestand: BestandsPalette[],
+  artikel: Artikel[],
+  platzAktiv = '',
+  erfasst: string[] = [],
+): PositionStart {
   const alle = [...nummern, ...(ki?.barcode_nummern ?? []), ki?.paletten_nummer ?? '', ki?.artikel_match ?? ''].filter(Boolean)
   const z = nachschlagen(alle, bestand, artikel)
   const a = z.artikel ?? (ki?.artikel_match ? (artikel.find((x) => x.artikelnummer === ki.artikel_match) ?? null) : null)
@@ -30,5 +38,11 @@ export function startwerte(nummern: string[], ki: KiErgebnis | null, bestand: Be
     charge: z.charge ?? ki?.charge ?? '',
     sollMenge: z.palette?.menge ?? null,
     zuordnung: z.grund,
+    hinweise: platzMeldungen({
+      palettenNummer: z.palettenNummer ?? ki?.paletten_nummer ?? '',
+      aktivPlatz: platzAktiv,
+      bestand,
+      erfasst,
+    }),
   }
 }

@@ -1,3 +1,4 @@
+import { anzahlText } from '../../lib/utils/soll'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Barcode, Camera, ChevronRight, ClipboardEdit, Images, MapPin, RefreshCw, ScanLine, Trash2, X } from 'lucide-react'
@@ -233,7 +234,7 @@ export function ErfassenPage() {
       <section className="card mb-3 flex flex-col gap-3 px-4 py-4">
         <div className="flex items-center justify-between gap-2">
           <p className="eyebrow">Aktiver Lagerplatz</p>
-          {aktuell && bestand.length > 0 && <span className="text-xs text-ink-2">{aufPlatz} Paletten laut Bestand</span>}
+          {aktuell && bestand.length > 0 && <span className="text-xs text-ink-2">{anzahlText(aufPlatz, 'Palette', 'Paletten')} laut Bestand</span>}
         </div>
         <div className="flex items-center gap-2">
           <input

@@ -1,4 +1,9 @@
-import type { Position, PositionEingabe, PositionsKonfidenz, Protokolleintrag, PruefStatus } from '../../types'
+import type { Inventur, Position, PositionEingabe, PositionsKonfidenz, Protokolleintrag, PruefStatus } from '../../types'
+
+/** Soll und Abweichung sind während einer aktiven Blind-Zählung ausgeblendet */
+export function sollSichtbar(inventur?: Pick<Inventur, 'blind' | 'status'> | null): boolean {
+  return !(inventur?.blind && inventur.status === 'aktiv')
+}
 
 /**
  * Vier Augen Prinzip und Protokoll. Reine Funktionen ohne Speicher,
@@ -6,7 +11,7 @@ import type { Position, PositionEingabe, PositionsKonfidenz, Protokolleintrag, P
  */
 
 /** Felder, die für Protokoll und Änderungsvergleich zählen */
-const FELDER: { key: 'artikelnummer' | 'bezeichnung' | 'lagen' | 'stueckProLage' | 'fehlend' | 'menge' | 'lagerplatz' | 'palettenNummer' | 'charge' | 'ebene' | 'identitaetUnklar'; label: string }[] = [
+const FELDER: { key: 'artikelnummer' | 'bezeichnung' | 'lagen' | 'stueckProLage' | 'fehlend' | 'menge' | 'lagerplatz' | 'palettenNummer' | 'charge' | 'ebene' | 'identitaetUnklar' | 'leer' | 'notiz'; label: string }[] = [
   { key: 'artikelnummer', label: 'Artikel' },
   { key: 'bezeichnung', label: 'Bezeichnung' },
   { key: 'lagen', label: 'Lagen' },
@@ -18,13 +23,40 @@ const FELDER: { key: 'artikelnummer' | 'bezeichnung' | 'lagen' | 'stueckProLage'
   { key: 'charge', label: 'Charge' },
   { key: 'ebene', label: 'Ebene' },
   { key: 'identitaetUnklar', label: 'Identität unklar' },
+  { key: 'leer', label: 'Leer' },
+  { key: 'notiz', label: 'Notiz' },
 ]
 
 /** Ab dieser Ebene wird nur gesichtet, nicht gezählt. Ebene 5 entspricht dem obersten Regalfach. */
 export const SICHTPRUEFUNG_AB_EBENE = 5
 
+/** Ab wann eine Abweichung zum Soll als auffällig gilt: absolut in Stück, optional zusätzlich in Prozent */
+export interface Schwelle {
+  absolut: number
+  prozent: number | null
+}
+
+/** Ohne Einstellung gilt jede Abweichung als auffällig (bisheriges Verhalten) */
+export const STANDARD_SCHWELLE: Schwelle = { absolut: 1, prozent: null }
+
+export function schwelleVon(i?: { schwelleStueck?: number; schwelleProzent?: number | null } | null): Schwelle {
+  return {
+    absolut: i?.schwelleStueck ?? STANDARD_SCHWELLE.absolut,
+    prozent: i?.schwelleProzent ?? null,
+  }
+}
+
+/** Liegt die Abweichung über der Schwelle? Keine Abweichung ist nie auffällig. */
+export function abweichungUeber(menge: number, soll: number, s: Schwelle = STANDARD_SCHWELLE): boolean {
+  const diff = Math.abs(menge - soll)
+  if (diff === 0) return false
+  if (diff >= s.absolut) return true
+  return s.prozent !== null && soll > 0 && (diff / soll) * 100 >= s.prozent
+}
+
 /** Angaben, aus denen die Prüfregeln abgeleitet werden */
 export interface PruefAngaben {
+  schwelle?: Schwelle
   menge: number
   sollMenge: number | null
   konfidenz: PositionsKonfidenz
@@ -41,7 +73,9 @@ const wert = (v: unknown) => (v === '' || v === null || v === undefined ? '–' 
 /** Gründe, warum eine zweite Zählung nötig ist. Leer heißt: keine Prüfung nötig. */
 export function pruefGruende(p: PruefAngaben): string[] {
   const g: string[] = []
-  if (p.sollMenge !== null && p.menge !== p.sollMenge) g.push(`Menge weicht vom Bestand ab (Soll ${p.sollMenge}, Ist ${p.menge})`)
+  if (p.sollMenge !== null && abweichungUeber(p.menge, p.sollMenge, p.schwelle ?? STANDARD_SCHWELLE)) {
+    g.push(`Menge weicht vom Bestand ab (Soll ${p.sollMenge}, Ist ${p.menge})`)
+  }
   if (p.lagerplatzLaut && p.lagerplatz && p.lagerplatz !== p.lagerplatzLaut) {
     g.push(`Lagerplatz weicht vom Bestand ab (Soll ${p.lagerplatzLaut}, Ist ${p.lagerplatz})`)
   }
@@ -125,7 +159,7 @@ export function nachAenderung(
 }
 
 /** Hilfsfunktion für Anzeige: Gründe einer bestehenden Position */
-export function gruendeFuerPosition(p: Pick<Position, 'menge' | 'sollMenge' | 'konfidenz' | 'lagerplatz' | 'lagerplatzLaut'>): string[] {
+export function gruendeFuerPosition(p: Pick<Position, 'menge' | 'sollMenge' | 'konfidenz' | 'lagerplatz' | 'lagerplatzLaut'> & { schwelle?: Schwelle }): string[] {
   return pruefGruende(p)
 }
 
@@ -134,7 +168,8 @@ export function erstErfassungsEingabe(
   basis: Omit<PositionEingabe, 'lagerplatzLaut' | 'pruefStatus' | 'geprueftVon' | 'geprueftAm' | 'protokoll'>,
   lagerplatzLaut: string,
   nutzer: string,
+  schwelle?: Schwelle,
 ): PositionEingabe {
-  const pr = ersterfassung({ ...basis, lagerplatzLaut }, nutzer)
+  const pr = ersterfassung({ ...basis, lagerplatzLaut, schwelle }, nutzer)
   return { ...basis, lagerplatzLaut, pruefStatus: pr.pruefStatus, geprueftVon: '', geprueftAm: null, protokoll: pr.eintraege }
 }

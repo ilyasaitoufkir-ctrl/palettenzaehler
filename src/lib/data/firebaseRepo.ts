@@ -41,6 +41,9 @@ function zuInventur(id: string, d: DocumentData): Inventur {
     datum: d.datum ?? '',
     lagerort: d.lagerort ?? '',
     status: d.status === 'abgeschlossen' ? 'abgeschlossen' : 'aktiv',
+    blind: d.blind === true,
+    schwelleStueck: typeof d.schwelleStueck === 'number' ? d.schwelleStueck : undefined,
+    schwelleProzent: typeof d.schwelleProzent === 'number' ? d.schwelleProzent : null,
     erstelltVon: d.erstelltVon ?? '',
     erstelltAm: ms(d.erstelltAm),
   }
@@ -87,6 +90,8 @@ function zuPosition(id: string, inventurId: string, d: DocumentData): Position {
     ebene: typeof d.ebene === 'string' ? d.ebene : '',
     erfassungSekunden: typeof d.erfassungSekunden === 'number' ? d.erfassungSekunden : null,
     identitaetUnklar: d.identitaetUnklar === true,
+    leer: d.leer === true,
+    notiz: typeof d.notiz === 'string' ? d.notiz : '',
     pruefStatus: d.pruefStatus === 'offen' || d.pruefStatus === 'geprueft' ? d.pruefStatus : 'nicht_noetig',
     geprueftVon: d.geprueftVon ?? '',
     geprueftAm: typeof d.geprueftAm === 'number' ? d.geprueftAm : null,

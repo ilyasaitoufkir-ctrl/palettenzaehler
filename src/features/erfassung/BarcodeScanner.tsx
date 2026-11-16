@@ -3,6 +3,23 @@ import { X } from 'lucide-react'
 import { barcodeAusVideo } from '../../lib/utils/barcode'
 import { Spinner } from '../../components/ui'
 
+/** Verständliche Meldung je Kamerafehler, damit klar ist, was zu tun ist */
+export function kameraFehlerText(name: string): string {
+  switch (name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return 'Kein Kamerazugriff. Erlaube der App in den Browser-Einstellungen die Kamera.'
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return 'Auf diesem Gerät wurde keine passende Kamera gefunden.'
+    case 'NotReadableError':
+    case 'AbortError':
+      return 'Die Kamera wird gerade von einer anderen App genutzt. Schließe sie und versuche es erneut.'
+    default:
+      return 'Die Kamera konnte nicht gestartet werden.'
+  }
+}
+
 /**
  * Vollbild Live Scanner: Kamera läuft, jedes Bild wird nach einem Barcode durchsucht.
  * Beim ersten Treffer vibriert das Handy (wo möglich) und der Wert wird zurückgegeben.
@@ -69,11 +86,7 @@ export function BarcodeScanner({
         schleife()
       } catch (e) {
         const name = (e as DOMException).name
-        setFehler(
-          name === 'NotAllowedError'
-            ? 'Kein Kamerazugriff. Bitte in den Einstellungen die Kamera für diese App erlauben.'
-            : 'Die Kamera konnte nicht gestartet werden.',
-        )
+        setFehler(kameraFehlerText(name))
       }
     })()
 
@@ -103,7 +116,14 @@ export function BarcodeScanner({
             <Spinner className="size-8" />
           </div>
         )}
-        {fehler && <p className="absolute inset-x-4 top-1/3 rounded-2xl bg-black/70 px-4 py-3 text-center">{fehler}</p>}
+        {fehler && (
+          <div className="absolute inset-x-4 top-1/3 flex flex-col gap-3 rounded-2xl bg-black/75 px-4 py-4 text-center" role="alert">
+            <p>{fehler}</p>
+            <button className="btn btn-primary" onClick={onClose}>
+              Nummer manuell eingeben
+            </button>
+          </div>
+        )}
       </div>
       <p className="px-6 py-5 text-center text-sm text-white/80" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)' }}>
         {hinweis}

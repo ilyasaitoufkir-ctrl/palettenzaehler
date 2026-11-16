@@ -1,8 +1,11 @@
+import { anzahlText } from '../../lib/utils/soll'
 import { useMemo, useRef, useState } from 'react'
 import { Boxes, FileSpreadsheet, Search, Upload } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Leer, Seitenkopf, Sheet, Spinner } from '../../components/ui'
-import { bestandAusZeilen, parseCsv } from '../../lib/utils/csv'
+import { bestandAusZeilenMitZuordnung, parseCsv, type BestandZuordnung } from '../../lib/utils/csv'
+import { speichereBestandVorlage, startZuordnung } from '../../lib/utils/vorlage'
+import { BestandZuordnungSheet } from './BestandZuordnungSheet'
 import { dateiAusgeben } from '../../lib/utils/download'
 import { nummerNorm } from '../../lib/utils/gs1'
 import { zeitRelativ } from '../../lib/utils/format'
@@ -17,6 +20,7 @@ export function BestandPage() {
   const [q, setQ] = useState('')
   const [laeuft, setLaeuft] = useState(false)
   const [info, setInfo] = useState<{ anzahl: number; fehler: string[]; ohneArtikel: number } | null>(null)
+  const [vorschau, setVorschau] = useState<{ zeilen: string[][]; kopf: string[]; start: BestandZuordnung; name: string } | null>(null)
   const dateiRef = useRef<HTMLInputElement>(null)
 
   const gefiltert = useMemo(() => {
@@ -32,26 +36,43 @@ export function BestandPage() {
     return [...l].sort((a, b) => a.lagerplatz.localeCompare(b.lagerplatz, 'de', { numeric: true })).slice(0, 300)
   }, [bestand, q])
 
+  /** Datei lesen und die Spaltenzuordnung zur Bestätigung anzeigen, importiert wird erst danach */
   const importieren = async (datei: File | undefined) => {
     if (!datei) return
     setLaeuft(true)
     try {
       const istExcel = /\.xlsx$/i.test(datei.name) || datei.type.includes('spreadsheetml')
       const zeilen = istExcel ? await (await import('../export/excel')).excelZeilen(datei) : parseCsv(await datei.text())
-      const { paletten, fehler } = bestandAusZeilen(zeilen)
-      if (!paletten.length) {
-        setInfo({ anzahl: 0, fehler, ohneArtikel: 0 })
-        return
-      }
-      await repo.bestandErsetzen(paletten, datei.name)
-      const nummern = new Set(artikel.map((a) => nummerNorm(a.artikelnummer)))
-      const ohneArtikel = paletten.filter((p) => p.artikelnummer && !nummern.has(nummerNorm(p.artikelnummer))).length
-      setInfo({ anzahl: paletten.length, fehler, ohneArtikel })
+      const kopf = (zeilen[0] ?? []).map((k) => String(k ?? ''))
+      setVorschau({ zeilen, kopf, start: startZuordnung(kopf), name: datei.name })
     } catch {
       toast('Die Datei konnte nicht gelesen werden.', 'fehler')
     } finally {
       setLaeuft(false)
       if (dateiRef.current) dateiRef.current.value = ''
+    }
+  }
+
+  const bestaetigen = async (z: BestandZuordnung, merken: boolean) => {
+    if (!vorschau) return
+    const { zeilen, kopf, name } = vorschau
+    setVorschau(null)
+    if (merken) speichereBestandVorlage(kopf, z)
+    setLaeuft(true)
+    try {
+      const { paletten, fehler } = bestandAusZeilenMitZuordnung(zeilen, z)
+      if (!paletten.length) {
+        setInfo({ anzahl: 0, fehler, ohneArtikel: 0 })
+        return
+      }
+      await repo.bestandErsetzen(paletten, name)
+      const nummern = new Set(artikel.map((a) => nummerNorm(a.artikelnummer)))
+      const ohneArtikel = paletten.filter((p) => p.artikelnummer && !nummern.has(nummerNorm(p.artikelnummer))).length
+      setInfo({ anzahl: paletten.length, fehler, ohneArtikel })
+    } catch {
+      toast('Der Bestand konnte nicht importiert werden.', 'fehler')
+    } finally {
+      setLaeuft(false)
     }
   }
 
@@ -61,9 +82,20 @@ export function BestandPage() {
     <>
       <Seitenkopf
         titel="Stammdaten"
-        unter={bestandMeta ? `Bestand: ${bestandMeta.anzahl} Paletten, Stand ${zeitRelativ(bestandMeta.importiertAm)}` : 'Noch keine Bestandsliste'}
+        unter={bestandMeta ? `Bestand: ${anzahlText(bestandMeta.anzahl, 'Palette', 'Paletten')}, Stand ${zeitRelativ(bestandMeta.importiertAm)}` : 'Noch keine Bestandsliste'}
       />
       <StammdatenTabs />
+
+      {vorschau && (
+        <BestandZuordnungSheet
+          offen
+          kopf={vorschau.kopf}
+          vorschau={vorschau.zeilen.slice(1, 4)}
+          start={vorschau.start}
+          onBestaetigen={bestaetigen}
+          onClose={() => setVorschau(null)}
+        />
+      )}
 
       <div className="card mb-4 flex flex-col gap-3 px-4 py-4">
         <p className="text-sm text-ink-2">
@@ -108,7 +140,7 @@ export function BestandPage() {
             <input className="field pl-12" type="search" placeholder="Palettennummer, Artikel, Charge, Platz" value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
           <p className="mb-2 text-xs font-medium text-ink-3">
-            {bestand.length} Paletten · {summe.toLocaleString('de-DE')} Stück laut Bestand
+            {anzahlText(bestand.length, 'Palette', 'Paletten')} · {summe.toLocaleString('de-DE')} Stück laut Bestand
             {gefiltert.length >= 300 ? ' · die ersten 300 Treffer' : ''}
           </p>
           <ul className="card divide-y divide-line">
@@ -138,7 +170,7 @@ export function BestandPage() {
             </p>
             {info.ohneArtikel > 0 && (
               <p className="rounded-[14px] bg-info-soft px-4 py-3 text-sm text-info">
-                {info.ohneArtikel} Paletten gehören zu einem Artikel, der nicht im Artikelstamm steht. Sie werden trotzdem erkannt, nur ohne Stück pro Lage aus dem Stamm.
+                {info.ohneArtikel === 1 ? 'Eine Palette gehört' : `${info.ohneArtikel} Paletten gehören`} zu einem Artikel, der nicht im Artikelstamm steht. Sie werden trotzdem erkannt, nur ohne Stück pro Lage aus dem Stamm.
               </p>
             )}
             {info.fehler.length > 0 && (

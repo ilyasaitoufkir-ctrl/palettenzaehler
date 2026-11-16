@@ -5,7 +5,7 @@ import { useApp } from '../../app/AppContext'
 import { Bestaetigen, KonfidenzBadge, Leer } from '../../components/ui'
 import { neueId } from '../../lib/utils/id'
 import { zeitRelativ } from '../../lib/utils/format'
-import { darfPruefen, erstErfassungsEingabe, gruendeFuerPosition, nachAenderung } from '../../lib/utils/pruefung'
+import { darfPruefen, erstErfassungsEingabe, gruendeFuerPosition, nachAenderung, schwelleVon, sollSichtbar } from '../../lib/utils/pruefung'
 import type { Position, PositionBasis, Protokolleintrag } from '../../types'
 import { PositionForm } from './PositionForm'
 import { ladeLagerplatz } from './lagerplatz'
@@ -39,17 +39,19 @@ function basisVon(p: Position): PositionBasis {
     sollMenge: p.sollMenge,
     ebene: p.ebene,
     identitaetUnklar: p.identitaetUnklar,
+    leer: p.leer ?? false,
+    notiz: p.notiz ?? '',
   }
 }
 
 export function ManuellPage() {
-  const { aktiveInventur, artikel, bestand, repo, toast, nutzer } = useApp()
+  const { aktiveInventur, artikel, bestand, repo, toast, nutzer, positionen } = useApp()
   const navigate = useNavigate()
   const ort = useLocation()
   // vom Barcode Scanner übergebene Werte und der aktive Lagerplatz
   const uebergabe = ort.state as { scan?: string[]; platz?: string } | null
   const scan = uebergabe?.scan ?? []
-  const [start] = useState(() => startwerte(scan, null, bestand, artikel, uebergabe?.platz ?? ladeLagerplatz()))
+  const [start] = useState(() => startwerte(scan, null, bestand, artikel, uebergabe?.platz ?? ladeLagerplatz(), positionen.map((p) => p.palettenNummer)))
   // feste ID für diesen Vorgang, ein doppelter Klick legt keine zweite Position an
   const [id] = useState(neueId)
 
@@ -66,9 +68,10 @@ export function ManuellPage() {
       <PositionForm
         artikel={artikel}
         start={start}
+        sollSichtbar={sollSichtbar(aktiveInventur)}
         submitText="Position speichern"
         onSubmit={async (basis) => {
-          await repo.positionAnlegen(aktiveInventur.id, id, erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt'))
+          await repo.positionAnlegen(aktiveInventur.id, id, erstErfassungsEingabe(basis, start.lagerplatzLaut, nutzer?.email ?? 'unbekannt', schwelleVon(aktiveInventur)))
           toast(`Position mit ${basis.menge} Stück gespeichert`)
           navigate('/liste')
         }}
@@ -107,7 +110,7 @@ export function PositionBearbeitenPage() {
     void _h
     void _e
     void _q
-    const pr = nachAenderung(p, { ...werte, lagerplatzLaut: p.lagerplatzLaut }, nutzerName, bestaetigen)
+    const pr = nachAenderung(p, { ...werte, lagerplatzLaut: p.lagerplatzLaut, schwelle: schwelleVon(aktiveInventur) }, nutzerName, bestaetigen)
     await repo.positionAktualisieren(aktiveInventur.id, p.id, {
       ...rest,
       pruefStatus: pr.pruefStatus,
@@ -117,7 +120,7 @@ export function PositionBearbeitenPage() {
     })
   }
 
-  const gruende = gruendeFuerPosition(p)
+  const gruende = gruendeFuerPosition({ ...p, schwelle: schwelleVon(aktiveInventur) })
   const pruefenDarf = darfPruefen(nutzerName, p)
 
   return (
@@ -170,7 +173,10 @@ export function PositionBearbeitenPage() {
           sollMenge: p.sollMenge,
           ebene: p.ebene,
           identitaetUnklar: p.identitaetUnklar,
+          leer: p.leer,
+          notiz: p.notiz,
         }}
+        sollSichtbar={sollSichtbar(aktiveInventur)}
         eigeneId={p.id}
         submitText="Änderungen speichern"
         onSubmit={async (e) => {

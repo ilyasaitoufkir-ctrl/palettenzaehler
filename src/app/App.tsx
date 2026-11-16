@@ -1,4 +1,6 @@
 import { BerichtPage } from '../features/bericht/BerichtPage'
+import { GassenPage } from '../features/gassen/GassenPage'
+import { LagerplanPage } from '../features/lagerplan/LagerplanPage'
 import type { ReactNode } from 'react'
 import { BrowserRouter, MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from './AppContext'
@@ -52,6 +54,8 @@ function Routen() {
         <Route path="/manuell" element={<ManuellPage />} />
         <Route path="/position/:id" element={<PositionBearbeitenPage />} />
         <Route path="/bericht" element={<BerichtPage />} />
+        <Route path="/gassen" element={<GassenPage />} />
+        <Route path="/lagerplan" element={<LagerplanPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

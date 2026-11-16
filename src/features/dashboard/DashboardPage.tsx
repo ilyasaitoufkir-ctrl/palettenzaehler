@@ -1,5 +1,6 @@
+import { anzahlText, sollBekannt } from '../../lib/utils/soll'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Boxes, Camera, ChevronRight, ClipboardEdit, Printer, Scale } from 'lucide-react'
+import { AlertTriangle, Boxes, Camera, ChevronRight, ClipboardEdit, Printer, Scale, Warehouse } from 'lucide-react'
 import { useApp } from '../../app/AppContext'
 import { Kennzahl, KonfidenzBadge, Leer, Seitenkopf } from '../../components/ui'
 import { sollIstAbgleich } from '../../lib/utils/csv'
@@ -7,7 +8,7 @@ import { zeitRelativ } from '../../lib/utils/format'
 import { fortschrittProGasse } from '../../lib/utils/gasse'
 
 export function DashboardPage() {
-  const { aktiveInventur, positionen, artikel, warteschlange, nutzer } = useApp()
+  const { aktiveInventur, positionen, artikel, warteschlange, nutzer, bestand } = useApp()
 
   if (!aktiveInventur) {
     return (
@@ -83,8 +84,23 @@ export function DashboardPage() {
         <div className="min-w-0 flex-1">
           <p className="font-semibold">Soll/Ist Abgleich</p>
           <p className="text-sm text-ink-2">
-            {abweichungen === 0 ? 'Keine Abweichungen zum Sollbestand' : `${abweichungen} ${abweichungen === 1 ? 'Artikel weicht' : 'Artikel weichen'} vom Soll ab`}
+            {!sollBekannt(bestand, positionen)
+              ? 'Kein Sollbestand geladen, Differenzen nicht verfügbar'
+              : abweichungen === 0
+                ? 'Keine Abweichungen zum Sollbestand'
+                : `${anzahlText(abweichungen, 'Artikel weicht', 'Artikel weichen')} vom Soll ab`}
           </p>
+        </div>
+        <ChevronRight className="size-5 text-ink-3" />
+      </Link>
+
+      <Link to="/gassen" className="card flex items-center gap-3 px-4 py-4">
+        <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+          <Warehouse className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Gassen-Liste</p>
+          <p className="text-sm text-ink-2">Alle Plätze je Gasse, erledigt oder offen</p>
         </div>
         <ChevronRight className="size-5 text-ink-3" />
       </Link>
